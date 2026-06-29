@@ -32,6 +32,8 @@ import { PagosSection } from './sections/PagosSection'
 import { EnvioSection } from './sections/EnvioSection'
 import { PedidosSection } from './sections/PedidosSection'
 import { useOrders } from './lib/ordersStore'
+import { useOrderNotifications } from './hooks/useOrderNotifications'
+import { loadNotificationPrefs } from './components/NotificationBanner'
 import { buildUrl, navigate } from './router'
 
 const EMPTY_DRAFT_IMG =
@@ -598,6 +600,19 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
   const activeOrders = ordersQ.data.filter(
     (o) => o.status !== 'delivered' && o.status !== 'cancelled',
   )
+
+  const [notifPrefs, setNotifPrefs] = useState(() => loadNotificationPrefs())
+  useEffect(() => {
+    const onFocus = () => setNotifPrefs(loadNotificationPrefs())
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [])
+
+  useOrderNotifications(ordersQ.data, {
+    enabled: notifPrefs.enabled,
+    soundEnabled: notifPrefs.sound,
+    localeName: local.name,
+  })
   const navBadges: Partial<Record<SectionId, number>> = {
     pedidos: activeOrders.length,
   }

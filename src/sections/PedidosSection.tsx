@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { deleteOrder, updateOrderStatus, useOrders } from '../lib/ordersStore'
 import { formatPrice } from '../utils'
 import type { Order, OrderStatus } from '../types'
+import {
+  NotificationBanner,
+  loadNotificationPrefs,
+} from '../components/NotificationBanner'
 
 interface PedidosSectionProps {
   slug: string
@@ -52,6 +56,13 @@ export function PedidosSection({ slug, isMobile, whatsapp }: PedidosSectionProps
   const [filter, setFilter] = useState<OrderStatus | 'all' | 'active'>('active')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [notifPrefs, setNotifPrefs] = useState(() => loadNotificationPrefs())
+
+  useEffect(() => {
+    const onStorage = () => setNotifPrefs(loadNotificationPrefs())
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: ordersQ.data.length, active: 0 }
@@ -110,6 +121,12 @@ export function PedidosSection({ slug, isMobile, whatsapp }: PedidosSectionProps
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <NotificationBanner
+        prefs={notifPrefs}
+        onPrefsChange={setNotifPrefs}
+        isMobile={isMobile}
+      />
+
       {/* Filter chips */}
       <div
         className="pa-scroll-x"

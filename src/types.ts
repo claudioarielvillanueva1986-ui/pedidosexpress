@@ -1,4 +1,4 @@
-export type SectionId = 'inicio' | 'menu' | 'local' | 'pagos' | 'envio'
+export type SectionId = 'inicio' | 'pedidos' | 'menu' | 'local' | 'pagos' | 'envio'
 
 export interface Category {
   id: string
@@ -69,4 +69,37 @@ export interface NavItem {
   icon: string
   title: string
   subtitle: string
+}
+
+export type OrderDeliveryMethod = 'delivery' | 'pickup'
+export type OrderPaymentMethod = 'cash' | 'mp'
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+
+export interface OrderItem {
+  productId: string
+  name: string
+  qty: number
+  unitPrice: number
+  subtotal: number
+}
+
+export interface OrderDraft {
+  localeSlug: string
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+  customerNotes: string
+  deliveryMethod: OrderDeliveryMethod
+  paymentMethod: OrderPaymentMethod
+  items: OrderItem[]
+  subtotal: number
+  deliveryFee: number
+  total: number
+}
+
+export interface Order extends OrderDraft {
+  id: string
+  status: OrderStatus
+  createdAt: number
+  updatedAt: number
 }

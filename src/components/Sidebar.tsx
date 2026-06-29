@@ -13,6 +13,7 @@ interface SidebarProps {
   currentName: string
   currentLogo: string
   localOpen: boolean
+  navBadges?: Partial<Record<SectionId, number>>
   onSwitchLocale: (slug: string) => void
   onCreateLocale: (name: string) => void
   onDeleteCurrentLocale: () => void
@@ -67,6 +68,7 @@ export function Sidebar({
   cloudEnabled = false,
   userEmail = null,
   onSignOut,
+  navBadges = {},
 }: SidebarProps) {
   const summariesQ = useLocaleSummaries()
   const summaries = summariesQ.data
@@ -485,18 +487,36 @@ export function Sidebar({
             overflowY: isMobile ? 'auto' : 'visible',
           }}
         >
-          {nav.map((sec) => (
-            <button
-              key={sec.id}
-              onClick={() => handleNavigate(sec.id)}
-              style={navItemStyle(sec.id === active)}
-            >
-              <span style={{ fontSize: 15, width: 20, textAlign: 'center', lineHeight: 1 }}>
-                {sec.icon}
-              </span>
-              <span>{sec.name}</span>
-            </button>
-          ))}
+          {nav.map((sec) => {
+            const isActive = sec.id === active
+            const badge = navBadges[sec.id]
+            return (
+              <button
+                key={sec.id}
+                onClick={() => handleNavigate(sec.id)}
+                style={navItemStyle(isActive)}
+              >
+                <span style={{ fontSize: 15, width: 20, textAlign: 'center', lineHeight: 1 }}>
+                  {sec.icon}
+                </span>
+                <span style={{ flex: 1 }}>{sec.name}</span>
+                {badge && badge > 0 ? (
+                  <span
+                    style={{
+                      background: isActive ? 'rgba(255, 255, 255, 0.18)' : 'rgba(229, 75, 42, 0.12)',
+                      color: isActive ? 'white' : '#C03A1E',
+                      padding: '1px 8px',
+                      borderRadius: 999,
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {badge}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
         </nav>
 
         {/* Plan card */}

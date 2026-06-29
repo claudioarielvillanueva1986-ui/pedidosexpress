@@ -10,12 +10,16 @@ interface InicioSectionProps {
   shipping: ShippingConfig
   local: LocalConfig
   publicUrl: string
+  ordersTodayCount: number
+  activeOrdersCount: number
+  revenueToday: number
   isMobile?: boolean
   onToggleStatus: () => void
   onGoMenu: () => void
   onGoLocal: () => void
   onGoPagos: () => void
   onGoEnvio: () => void
+  onGoPedidos: () => void
   onOpenCustomerView: () => void
   onShowQr: () => void
 }
@@ -36,12 +40,16 @@ export function InicioSection({
   shipping,
   local,
   publicUrl,
+  ordersTodayCount,
+  activeOrdersCount,
+  revenueToday,
   isMobile = false,
   onToggleStatus,
   onGoMenu,
   onGoLocal,
   onGoPagos,
   onGoEnvio,
+  onGoPedidos,
   onOpenCustomerView,
   onShowQr,
 }: InicioSectionProps) {
@@ -66,6 +74,22 @@ export function InicioSection({
   const heroCtaLabel = isOpen ? 'Pausar pedidos' : 'Volver a abrir'
 
   const statCards = [
+    {
+      label: 'Pedidos hoy',
+      value: String(ordersTodayCount),
+      hint:
+        activeOrdersCount > 0
+          ? `${activeOrdersCount} activo${activeOrdersCount === 1 ? '' : 's'} ahora`
+          : 'sin pendientes',
+      icon: '📋',
+      onClick: onGoPedidos,
+    },
+    {
+      label: 'Ingresos hoy',
+      value: formatPrice(revenueToday),
+      hint: ordersTodayCount > 0 ? 'cobrados / a cobrar' : 'todavía no facturado',
+      icon: '💰',
+    },
     { label: 'Productos activos', value: String(availableCount), hint: `de ${productCount} totales`, icon: '🍽' },
     { label: 'Categorías', value: String(categoryCount), hint: 'organizan tu menú', icon: '🗂' },
     { label: 'Medios de pago', value: String(enabledPays), hint: 'habilitados', icon: '💳' },
@@ -302,11 +326,14 @@ export function InicioSection({
         {statCards.map((stat) => (
           <div
             key={stat.label}
+            onClick={stat.onClick}
             style={{
               background: 'white',
               borderRadius: 14,
               padding: '16px 18px',
               border: '1px solid rgba(26, 20, 16, 0.05)',
+              cursor: stat.onClick ? 'pointer' : 'default',
+              transition: 'transform 140ms ease, box-shadow 140ms ease',
             }}
           >
             <div

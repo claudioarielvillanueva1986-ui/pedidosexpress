@@ -10,6 +10,7 @@ import type {
 
 export const NAV: NavItem[] = [
   { id: 'inicio', name: 'Inicio', icon: '🏠', title: 'Inicio', subtitle: 'Resumen y configuración rápida.' },
+  { id: 'pedidos', name: 'Pedidos', icon: '📋', title: 'Pedidos', subtitle: 'Pedidos que entraron, en preparación y entregados.' },
   { id: 'menu', name: 'Menú', icon: '🍔', title: 'Menú', subtitle: 'Gestioná categorías y productos.' },
   { id: 'local', name: 'Local', icon: '🏪', title: 'Configuración del local', subtitle: 'Marca, contacto y horarios de atención.' },
   { id: 'pagos', name: 'Métodos de pago', icon: '💳', title: 'Métodos de pago', subtitle: 'Qué medios aceptás y datos para transferir.' },

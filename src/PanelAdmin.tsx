@@ -30,6 +30,8 @@ import { MenuSection } from './sections/MenuSection'
 import { LocalSection } from './sections/LocalSection'
 import { PagosSection } from './sections/PagosSection'
 import { EnvioSection } from './sections/EnvioSection'
+import { PedidosSection } from './sections/PedidosSection'
+import { useOrders } from './lib/ordersStore'
 import { buildUrl, navigate } from './router'
 
 const EMPTY_DRAFT_IMG =
@@ -592,6 +594,24 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
   const activeNav = NAV.find((n) => n.id === activeSection) ?? NAV[0]
   const availableCount = products.filter((p) => p.available).length
 
+  const ordersQ = useOrders(slug)
+  const activeOrders = ordersQ.data.filter(
+    (o) => o.status !== 'delivered' && o.status !== 'cancelled',
+  )
+  const navBadges: Partial<Record<SectionId, number>> = {
+    pedidos: activeOrders.length,
+  }
+
+  const todayMs = (() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d.getTime()
+  })()
+  const ordersToday = ordersQ.data.filter((o) => o.createdAt >= todayMs)
+  const revenueToday = ordersToday
+    .filter((o) => o.status !== 'cancelled')
+    .reduce((a, o) => a + o.total, 0)
+
   const isEditing = !!editingProductId
   const isNew = editingProductId === 'new'
 
@@ -616,6 +636,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
         currentName={local.name}
         currentLogo={local.logo}
         localOpen={localOpen}
+        navBadges={navBadges}
         onSwitchLocale={handleSwitchLocale}
         onCreateLocale={handleCreateLocale}
         onDeleteCurrentLocale={handleDeleteThisLocale}
@@ -656,14 +677,22 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
               local={local}
               isMobile={isMobile}
               publicUrl={buildUrl({ kind: 'customer', slug })}
+              ordersTodayCount={ordersToday.length}
+              activeOrdersCount={activeOrders.length}
+              revenueToday={revenueToday}
               onToggleStatus={toggleStatus}
               onGoMenu={() => setActiveSection('menu')}
               onGoLocal={() => setActiveSection('local')}
               onGoPagos={() => setActiveSection('pagos')}
               onGoEnvio={() => setActiveSection('envio')}
+              onGoPedidos={() => setActiveSection('pedidos')}
               onOpenCustomerView={onOpenCustomerView}
               onShowQr={() => setQrOpen(true)}
             />
+          ) : null}
+
+          {activeSection === 'pedidos' ? (
+            <PedidosSection slug={slug} isMobile={isMobile} whatsapp={local.whatsapp} />
           ) : null}
 
           {activeSection === 'menu' ? (

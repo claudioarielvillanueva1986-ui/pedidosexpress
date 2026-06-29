@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocaleState } from './store'
 import type { LocaleState } from './store'
+import { createOrder } from './lib/ordersStore'
 import { navigate } from './router'
 import { formatPrice } from './utils'
-import type { Product } from './types'
+import type { OrderDraft, OrderItem, Product } from './types'
 
 type ViewMode = 'cart' | 'checkout'
 type DeliveryMethod = 'delivery' | 'pickup'
@@ -305,16 +306,59 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
     return lines.join('\n')
   }
 
-  const submitOrder = () => {
+  const [submitting, setSubmitting] = useState(false)
+
+  const submitOrder = async () => {
+    if (submitting) return
     const errs = validate()
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
       showToast('Completá los campos requeridos')
       return
     }
+
+    const items: OrderItem[] = cartEntries.map((e) => ({
+      productId: e.id,
+      name: e.name,
+      qty: e.qty,
+      unitPrice: e.price,
+      subtotal: e.price * e.qty,
+    }))
+
+    const draft: OrderDraft = {
+      localeSlug: store.slug,
+      customerName: form.name.trim(),
+      customerPhone: form.phone.trim(),
+      customerAddress: form.address.trim(),
+      customerNotes: form.notes.trim(),
+      deliveryMethod: form.deliveryMethod,
+      paymentMethod: form.paymentMethod,
+      items,
+      subtotal,
+      deliveryFee: effectiveDeliveryFee,
+      total,
+    }
+
+    setSubmitting(true)
+    try {
+      await createOrder(draft)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No pudimos registrar el pedido'
+      showToast(msg)
+      // Tampoco bloqueamos el envío por WhatsApp si la persistencia falla,
+      // mejor que el cliente pueda mandar el pedido aunque no quede en la DB.
+      console.error('createOrder failed', err)
+    } finally {
+      setSubmitting(false)
+    }
+
     const number = (store.local.whatsapp || '5491100000000').replace(/\D/g, '')
     const text = encodeURIComponent(buildMessage())
     window.open(`https://wa.me/${number}?text=${text}`, '_blank', 'noopener,noreferrer')
+    showToast('¡Pedido enviado!')
+    setCart({})
+    setDrawerOpen(false)
+    setView('cart')
   }
 
   // ----- styles
@@ -1509,17 +1553,18 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
             {isCheckout ? (
               <>
                 <button
-                  onClick={submitOrder}
+                  onClick={() => void submitOrder()}
+                  disabled={submitting}
                   style={{
                     width: '100%',
-                    background: '#25D366',
+                    background: submitting ? 'rgba(37, 211, 102, 0.6)' : '#25D366',
                     color: 'white',
                     border: 'none',
                     padding: 14,
                     borderRadius: 14,
                     fontWeight: 700,
                     fontSize: 14.5,
-                    cursor: 'pointer',
+                    cursor: submitting ? 'wait' : 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1530,7 +1575,7 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.7-1.4-1.7-1.6-1.9-.2-.3 0-.4.1-.5.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.6-1.5-.9-2.1-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 2-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3zM12 2C6.5 2 2 6.5 2 12c0 1.7.5 3.4 1.3 4.9L2 22l5.2-1.4c1.4.8 3.1 1.2 4.8 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2z" />
                   </svg>
-                  <span>Confirmar pedido por WhatsApp</span>
+                  <span>{submitting ? 'Enviando…' : 'Confirmar pedido por WhatsApp'}</span>
                 </button>
                 <div
                   style={{

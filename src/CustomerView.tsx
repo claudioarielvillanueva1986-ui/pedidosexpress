@@ -296,6 +296,7 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
       lines.push('💳 *Pago:* Efectivo (al recibir)')
     } else {
       lines.push('💳 *Pago:* Transferencia / Pago digital')
+      if (store.payments.paymentLink) lines.push('🔗 Pagá acá: ' + store.payments.paymentLink)
       if (store.payments.alias) lines.push('Alias: ' + store.payments.alias)
       if (store.payments.cbu) lines.push('CBU: ' + store.payments.cbu)
     }
@@ -1354,15 +1355,41 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
                       borderRadius: 14,
                       padding: 14,
                       display: 'flex',
-                      gap: 12,
-                      alignItems: 'flex-start',
+                      flexDirection: 'column',
+                      gap: 10,
                     }}
                   >
-                    <div style={{ fontSize: 22, flexShrink: 0 }}>💬</div>
-                    <div style={{ fontSize: 12.5, color: '#1A1410', lineHeight: 1.55 }}>
-                      {store.payments.message ||
-                        'Te enviaremos el link de pago o Alias/CBU por WhatsApp para que realices tu transferencia.'}
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <div style={{ fontSize: 22, flexShrink: 0 }}>💬</div>
+                      <div style={{ fontSize: 12.5, color: '#1A1410', lineHeight: 1.55 }}>
+                        {store.payments.message ||
+                          'Te enviaremos el link de pago o Alias/CBU por WhatsApp para que realices tu transferencia.'}
+                      </div>
                     </div>
+                    {store.payments.paymentLink ? (
+                      <a
+                        href={store.payments.paymentLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          background: '#009EE3',
+                          color: 'white',
+                          padding: '10px 14px',
+                          borderRadius: 10,
+                          fontWeight: 700,
+                          fontSize: 13,
+                          textDecoration: 'none',
+                          boxShadow: '0 6px 14px rgba(0, 158, 227, 0.3)',
+                        }}
+                      >
+                        <span>💳</span>
+                        <span>Pagar ahora con Mercado Pago</span>
+                      </a>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

@@ -189,6 +189,22 @@ export function PagosSection({
                     </label>
                     <label style={{ display: 'block', gridColumn: '1 / -1' }}>
                       <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
+                        Link de pago (Mercado Pago)
+                      </span>
+                      <input
+                        type="url"
+                        value={payments.paymentLink ?? ''}
+                        onChange={(e) => onPaymentsChange({ paymentLink: e.target.value })}
+                        placeholder="https://mpago.la/abcdef o link a tu QR de cobro"
+                        style={inputStyle}
+                      />
+                      <span style={{ display: 'block', fontSize: 11, color: '#7A6E66', marginTop: 4, lineHeight: 1.5 }}>
+                        Opcional. Si lo cargás, el cliente ve un botón "Pagar online" antes de
+                        confirmar y el link se incluye en el mensaje de WhatsApp.
+                      </span>
+                    </label>
+                    <label style={{ display: 'block', gridColumn: '1 / -1' }}>
+                      <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
                         Mensaje que se envía con el link de pago
                       </span>
                       <textarea

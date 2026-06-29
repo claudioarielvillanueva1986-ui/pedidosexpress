@@ -36,6 +36,7 @@ interface DbLocaleRow {
   cbu: string | null
   holder: string | null
   payment_message: string | null
+  payment_link: string | null
   schedule: ScheduleDay[] | null
   created_at: string
   updated_at: string
@@ -111,6 +112,7 @@ function rowToLocaleState(
       cbu: row.cbu ?? '',
       holder: row.holder ?? '',
       message: row.payment_message ?? '',
+      paymentLink: row.payment_link ?? '',
     },
     shipping: {
       deliveryEnabled: row.delivery_enabled,
@@ -215,6 +217,7 @@ export async function cloudCreateLocale(name: string, ownerId: string): Promise<
     cbu: INITIAL_PAYMENTS.cbu,
     holder: INITIAL_PAYMENTS.holder,
     payment_message: INITIAL_PAYMENTS.message,
+    payment_link: INITIAL_PAYMENTS.paymentLink ?? '',
     schedule: INITIAL_SCHEDULE,
   })
   if (insErr) throw insErr
@@ -286,6 +289,7 @@ export async function cloudSaveLocale(state: LocaleState): Promise<void> {
       cbu: state.payments.cbu,
       holder: state.payments.holder,
       payment_message: state.payments.message,
+      payment_link: state.payments.paymentLink ?? '',
       schedule: state.schedule,
       updated_at: new Date().toISOString(),
     })

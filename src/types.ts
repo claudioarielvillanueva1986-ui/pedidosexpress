@@ -41,6 +41,7 @@ export interface PaymentsConfig {
   cbu: string
   holder: string
   message: string
+  paymentLink?: string
 }
 
 export interface ShippingConfig {

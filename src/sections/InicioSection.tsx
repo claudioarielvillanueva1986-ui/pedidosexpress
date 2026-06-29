@@ -17,6 +17,7 @@ interface InicioSectionProps {
   onGoPagos: () => void
   onGoEnvio: () => void
   onOpenCustomerView: () => void
+  onShowQr: () => void
 }
 
 interface ChecklistEntry {
@@ -42,6 +43,7 @@ export function InicioSection({
   onGoPagos,
   onGoEnvio,
   onOpenCustomerView,
+  onShowQr,
 }: InicioSectionProps) {
   const copyPublicUrl = async () => {
     try {
@@ -206,7 +208,7 @@ export function InicioSection({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1fr auto auto',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr auto auto auto',
             gap: 8,
             alignItems: 'stretch',
           }}
@@ -250,6 +252,23 @@ export function InicioSection({
             }}
           >
             📋 Copiar
+          </button>
+          <button
+            onClick={onShowQr}
+            style={{
+              background: 'white',
+              border: '1px solid rgba(26, 20, 16, 0.1)',
+              padding: '0 14px',
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 12.5,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            📱 QR
           </button>
           <button
             onClick={onOpenCustomerView}

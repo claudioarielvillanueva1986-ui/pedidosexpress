@@ -24,6 +24,7 @@ import { TopBar } from './components/TopBar'
 import { Toast } from './components/Toast'
 import { ProductDrawer } from './components/ProductDrawer'
 import { AuthScreen } from './components/AuthScreen'
+import { QrModal } from './components/QrModal'
 import { InicioSection } from './sections/InicioSection'
 import { MenuSection } from './sections/MenuSection'
 import { LocalSection } from './sections/LocalSection'
@@ -371,6 +372,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
 
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [qrOpen, setQrOpen] = useState(false)
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -660,6 +662,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
               onGoPagos={() => setActiveSection('pagos')}
               onGoEnvio={() => setActiveSection('envio')}
               onOpenCustomerView={onOpenCustomerView}
+              onShowQr={() => setQrOpen(true)}
             />
           ) : null}
 
@@ -726,6 +729,13 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
         onClose={closeEditDrawer}
         onChange={onEditFormChange}
         onSave={saveProduct}
+      />
+
+      <QrModal
+        isOpen={qrOpen}
+        url={buildUrl({ kind: 'customer', slug })}
+        localName={local.name}
+        onClose={() => setQrOpen(false)}
       />
 
       <Toast message={toast} />

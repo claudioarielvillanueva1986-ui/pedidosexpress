@@ -1,15 +1,40 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createLocale, isCloudMode, useLocaleSummaries } from './store'
 import { navigate } from './router'
 import { useIsMobile } from './hooks/useMediaQuery'
 
+type StatusFilter = 'all' | 'open' | 'closed'
+
 export function MarketplaceLanding() {
   const summariesQ = useLocaleSummaries()
-  const summaries = summariesQ.data
   const isMobile = useIsMobile()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+
+  const summaries = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return summariesQ.data
+      .filter((s) => {
+        if (statusFilter === 'open' && !s.localOpen) return false
+        if (statusFilter === 'closed' && s.localOpen) return false
+        return true
+      })
+      .filter((s) => {
+        if (!q) return true
+        return (
+          s.name.toLowerCase().includes(q) ||
+          s.slug.toLowerCase().includes(q) ||
+          (s.slogan ?? '').toLowerCase().includes(q)
+        )
+      })
+  }, [summariesQ.data, search, statusFilter])
+
+  const openCount = summariesQ.data.filter((s) => s.localOpen).length
+  const closedCount = summariesQ.data.length - openCount
+  const hasAnyLocales = summariesQ.data.length > 0
 
   const handleCreate = async () => {
     const name = newName.trim()
@@ -179,7 +204,7 @@ export function MarketplaceLanding() {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
-            marginBottom: 18,
+            marginBottom: 14,
           }}
         >
           <h2
@@ -194,9 +219,90 @@ export function MarketplaceLanding() {
             Locales disponibles
           </h2>
           <span style={{ fontSize: 13, color: '#7A6E66' }}>
-            {summaries.length} {summaries.length === 1 ? 'local' : 'locales'}
+            {summaries.length === summariesQ.data.length
+              ? `${summaries.length} ${summaries.length === 1 ? 'local' : 'locales'}`
+              : `${summaries.length} de ${summariesQ.data.length}`}
           </span>
         </div>
+
+        {hasAnyLocales ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 10,
+              marginBottom: 18,
+              alignItems: isMobile ? 'stretch' : 'center',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                flex: 1,
+                background: 'white',
+                border: '1px solid rgba(26, 20, 16, 0.08)',
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '0 12px',
+              }}
+            >
+              <span style={{ color: '#7A6E66', fontSize: 14 }}>🔎</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nombre o producto…"
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  padding: '11px 0',
+                  background: 'transparent',
+                  fontSize: 14,
+                  color: '#1A1410',
+                  minWidth: 0,
+                }}
+              />
+              {search ? (
+                <button
+                  onClick={() => setSearch('')}
+                  aria-label="Limpiar búsqueda"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#7A6E66',
+                    fontSize: 14,
+                    padding: 4,
+                  }}
+                >
+                  ✕
+                </button>
+              ) : null}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <FilterChip
+                active={statusFilter === 'all'}
+                onClick={() => setStatusFilter('all')}
+                label={`Todos · ${summariesQ.data.length}`}
+              />
+              <FilterChip
+                active={statusFilter === 'open'}
+                onClick={() => setStatusFilter('open')}
+                label={`Abiertos · ${openCount}`}
+                dot="#22C55E"
+              />
+              <FilterChip
+                active={statusFilter === 'closed'}
+                onClick={() => setStatusFilter('closed')}
+                label={`Cerrados · ${closedCount}`}
+                dot="#94918D"
+              />
+            </div>
+          </div>
+        ) : null}
 
         {summariesQ.loading ? (
           <div
@@ -212,7 +318,7 @@ export function MarketplaceLanding() {
           >
             Cargando locales…
           </div>
-        ) : summaries.length === 0 ? (
+        ) : !hasAnyLocales ? (
           <div
             style={{
               background: 'white',
@@ -252,6 +358,40 @@ export function MarketplaceLanding() {
             >
               + Crear el primer local
             </button>
+          </div>
+        ) : summaries.length === 0 ? (
+          <div
+            style={{
+              background: 'white',
+              border: '1px dashed rgba(26, 20, 16, 0.12)',
+              borderRadius: 18,
+              padding: '32px 24px',
+              textAlign: 'center',
+              color: '#7A6E66',
+              fontSize: 13.5,
+            }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 6 }}>🔍</div>
+            <p style={{ margin: 0 }}>
+              Nada coincide con esa búsqueda.{' '}
+              <button
+                onClick={() => {
+                  setSearch('')
+                  setStatusFilter('all')
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#E54B2A',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  textDecoration: 'underline',
+                }}
+              >
+                Limpiar filtros
+              </button>
+            </p>
           </div>
         ) : (
           <div
@@ -474,5 +614,52 @@ export function MarketplaceLanding() {
         </div>
       </section>
     </div>
+  )
+}
+
+function FilterChip({
+  active,
+  onClick,
+  label,
+  dot,
+}: {
+  active: boolean
+  onClick: () => void
+  label: string
+  dot?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: active ? '#1A1410' : 'white',
+        color: active ? 'white' : '#1A1410',
+        border: '1px solid ' + (active ? 'transparent' : 'rgba(26, 20, 16, 0.08)'),
+        padding: '10px 12px',
+        borderRadius: 12,
+        fontWeight: 600,
+        fontSize: 12.5,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        transition: 'all 140ms ease',
+      }}
+    >
+      {dot ? (
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            background: dot,
+            display: 'inline-block',
+          }}
+        />
+      ) : null}
+      <span>{label}</span>
+    </button>
   )
 }

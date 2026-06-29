@@ -38,6 +38,7 @@ create table if not exists public.locales (
   cbu text default '',
   holder text default '',
   payment_message text default '',
+  payment_link text default '',
 
   -- schedule (array de { day, open, from, to })
   schedule jsonb default '[]'::jsonb,

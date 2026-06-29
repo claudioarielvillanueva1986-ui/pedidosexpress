@@ -70,6 +70,7 @@ export const INITIAL_PAYMENTS: PaymentsConfig = {
   cbu: '0000003100074558920000',
   holder: 'Martín Gutiérrez',
   message: 'Una vez recibido el comprobante, salimos para tu casa.',
+  paymentLink: '',
 }
 
 export const INITIAL_SHIPPING: ShippingConfig = {

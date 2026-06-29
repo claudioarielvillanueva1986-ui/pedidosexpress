@@ -1,5 +1,6 @@
 import type { LocalConfig, ScheduleDay } from '../types'
 import { Toggle } from '../components/Toggle'
+import { ImageUploadButton } from '../components/ImageUploadButton'
 import { COLOR_PALETTE } from '../data'
 import { inputStyle } from '../utils'
 
@@ -7,6 +8,7 @@ interface LocalSectionProps {
   local: LocalConfig
   schedule: ScheduleDay[]
   isMobile: boolean
+  uploadScope: string
   onLocalChange: (patch: Partial<LocalConfig>) => void
   onColorChange: (color: string) => void
   onToggleDay: (idx: number) => void
@@ -30,11 +32,13 @@ export function LocalSection({
   local,
   schedule,
   isMobile,
+  uploadScope,
   onLocalChange,
   onColorChange,
   onToggleDay,
   onScheduleFieldChange,
 }: LocalSectionProps) {
+  const logoIsImage = typeof local.logo === 'string' && /^(https?:|data:)/i.test(local.logo)
   const grid2: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -76,13 +80,48 @@ export function LocalSection({
             <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>
               Emoji / Logo
             </span>
-            <input
-              type="text"
-              value={local.logo}
-              onChange={(e) => onLocalChange({ logo: e.target.value })}
-              placeholder="🔥 o URL de imagen"
-              style={inputStyle}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 10,
+                  background: '#F5F2EE',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 24,
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}
+              >
+                {logoIsImage ? (
+                  <img
+                    src={local.logo}
+                    alt="logo"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  local.logo || '🏪'
+                )}
+              </div>
+              <input
+                type="text"
+                value={local.logo}
+                onChange={(e) => onLocalChange({ logo: e.target.value })}
+                placeholder="🔥 o URL"
+                style={{ ...inputStyle, minWidth: 0 }}
+              />
+              <ImageUploadButton
+                scope={uploadScope}
+                hint="logo"
+                label="Subir"
+                onUploaded={(url) => onLocalChange({ logo: url })}
+              />
+            </div>
+            <span style={{ display: 'block', fontSize: 11, color: '#7A6E66', marginTop: 4 }}>
+              Podés usar un emoji, pegar una URL o subir una imagen.
+            </span>
           </label>
           <label style={{ display: 'block', gridColumn: '1 / -1' }}>
             <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>

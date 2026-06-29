@@ -736,6 +736,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
               local={local}
               schedule={schedule}
               isMobile={isMobile}
+              uploadScope={slug}
               onLocalChange={updateLocal}
               onColorChange={setColor}
               onToggleDay={toggleScheduleDay}
@@ -770,6 +771,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
         isNew={isNew}
         draft={editForm}
         categories={categories}
+        uploadScope={slug}
         onClose={closeEditDrawer}
         onChange={onEditFormChange}
         onSave={saveProduct}

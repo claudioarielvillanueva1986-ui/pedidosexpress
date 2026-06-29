@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { createLocale, isCloudMode, useLocaleSummaries } from './store'
 import { navigate } from './router'
 import { useIsMobile } from './hooks/useMediaQuery'
+import { BrandLogo } from './components/BrandLogo'
 
 type StatusFilter = 'all' | 'open' | 'closed'
 
@@ -421,22 +422,14 @@ export function MarketplaceLanding() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 16,
-                      background: `linear-gradient(135deg, ${s.primaryColor}, ${s.primaryColor}88)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 28,
-                      boxShadow: `0 6px 14px ${s.primaryColor}33`,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {s.logo || '🏪'}
-                  </div>
+                  <BrandLogo
+                    logo={s.logo}
+                    fallback="🏪"
+                    size={56}
+                    borderRadius={16}
+                    background={`linear-gradient(135deg, ${s.primaryColor}, ${s.primaryColor}88)`}
+                    fontSize={28}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{

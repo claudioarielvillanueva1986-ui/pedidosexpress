@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { NavItem, SectionId } from '../types'
 import { useLocaleSummaries } from '../store'
+import { BrandLogo } from './BrandLogo'
 
 interface SidebarProps {
   nav: NavItem[]
@@ -250,23 +251,15 @@ export function Sidebar({
               cursor: 'pointer',
             }}
           >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 7,
-                background: '#1A1410',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 11,
-                flexShrink: 0,
-              }}
-            >
-              {currentLogo && currentLogo.length <= 2 ? currentLogo : initialsFor(currentName)}
-            </div>
+            <BrandLogo
+              logo={currentLogo}
+              fallback={initialsFor(currentName)}
+              size={28}
+              borderRadius={7}
+              background="#1A1410"
+              color="white"
+              fontSize={11}
+            />
             <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
               <div
                 style={{
@@ -344,22 +337,15 @@ export function Sidebar({
                       textAlign: 'left',
                     }}
                   >
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 7,
-                        background: `linear-gradient(135deg, ${s.primaryColor}, ${s.primaryColor}99)`,
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 14,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {s.logo && s.logo.length <= 2 ? s.logo : initialsFor(s.name)}
-                    </div>
+                    <BrandLogo
+                      logo={s.logo}
+                      fallback={initialsFor(s.name)}
+                      size={26}
+                      borderRadius={7}
+                      background={`linear-gradient(135deg, ${s.primaryColor}, ${s.primaryColor}99)`}
+                      color="white"
+                      fontSize={14}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{

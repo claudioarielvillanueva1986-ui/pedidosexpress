@@ -5,6 +5,7 @@ import { createOrder } from './lib/ordersStore'
 import { navigate } from './router'
 import { formatPrice } from './utils'
 import type { OrderDraft, OrderItem, Product } from './types'
+import { BrandLogo } from './components/BrandLogo'
 
 type ViewMode = 'cart' | 'checkout'
 type DeliveryMethod = 'delivery' | 'pickup'
@@ -454,21 +455,14 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #E54B2A, #F0823A)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 20,
-                boxShadow: '0 6px 16px rgba(229, 75, 42, 0.32)',
-              }}
-            >
-              {store.local.logo || '🔥'}
-            </div>
+            <BrandLogo
+              logo={store.local.logo}
+              fallback="🔥"
+              size={38}
+              borderRadius={12}
+              background="linear-gradient(135deg, #E54B2A, #F0823A)"
+              fontSize={20}
+            />
             <div>
               <div
                 style={{

@@ -1,12 +1,14 @@
 import type { Category, ProductDraft } from '../types'
 import { Toggle } from './Toggle'
 import { inputStyle } from '../utils'
+import { ImageUploadButton } from './ImageUploadButton'
 
 interface ProductDrawerProps {
   isOpen: boolean
   isNew: boolean
   draft: ProductDraft
   categories: Category[]
+  uploadScope: string
   onClose: () => void
   onChange: (patch: Partial<ProductDraft>) => void
   onSave: () => void
@@ -17,6 +19,7 @@ export function ProductDrawer({
   isNew,
   draft,
   categories,
+  uploadScope,
   onClose,
   onChange,
   onSave,
@@ -121,21 +124,29 @@ export function ProductDrawer({
                     />
                   ) : null}
                 </div>
-                <input
-                  type="text"
-                  value={draft.img}
-                  onChange={(e) => onChange({ img: e.target.value })}
-                  placeholder="URL de la imagen (Unsplash, tu CDN, etc.)"
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 10,
-                    border: '1px solid rgba(26, 20, 16, 0.12)',
-                    background: 'white',
-                    fontSize: 12.5,
-                    outline: 'none',
-                    fontFamily: 'ui-monospace, Menlo, monospace',
-                  }}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <ImageUploadButton
+                    scope={uploadScope}
+                    hint={draft.name || 'producto'}
+                    label="Subir foto del producto"
+                    onUploaded={(url) => onChange({ img: url })}
+                  />
+                  <input
+                    type="text"
+                    value={draft.img}
+                    onChange={(e) => onChange({ img: e.target.value })}
+                    placeholder="o pegá una URL"
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(26, 20, 16, 0.12)',
+                      background: 'white',
+                      fontSize: 12,
+                      outline: 'none',
+                      fontFamily: 'ui-monospace, Menlo, monospace',
+                    }}
+                  />
+                </div>
               </div>
             </div>
 

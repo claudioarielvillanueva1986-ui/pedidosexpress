@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   Category,
   LocalConfig,
@@ -9,15 +9,8 @@ import type {
   SectionId,
   ShippingConfig,
 } from './types'
-import {
-  INITIAL_CATEGORIES,
-  INITIAL_LOCAL,
-  INITIAL_PAYMENTS,
-  INITIAL_PRODUCTS,
-  INITIAL_SCHEDULE,
-  INITIAL_SHIPPING,
-  NAV,
-} from './data'
+import { NAV } from './data'
+import { loadPersistedState, savePersistedState } from './store'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { Toast } from './components/Toast'
@@ -32,12 +25,16 @@ const EMPTY_DRAFT_IMG =
   'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80&auto=format&fit=crop'
 
 export function PanelAdmin() {
-  const [activeSection, setActiveSection] = useState<SectionId>('inicio')
-  const [localOpen, setLocalOpen] = useState(true)
+  const persisted = loadPersistedState()
 
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES)
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS)
-  const [activeAdminCat, setActiveAdminCat] = useState<string | null>('hamburguesas')
+  const [activeSection, setActiveSection] = useState<SectionId>('inicio')
+  const [localOpen, setLocalOpen] = useState(persisted.localOpen)
+
+  const [categories, setCategories] = useState<Category[]>(persisted.categories)
+  const [products, setProducts] = useState<Product[]>(persisted.products)
+  const [activeAdminCat, setActiveAdminCat] = useState<string | null>(
+    persisted.categories[0]?.id ?? null,
+  )
 
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryDraft, setNewCategoryDraft] = useState('')
@@ -52,10 +49,14 @@ export function PanelAdmin() {
     available: true,
   })
 
-  const [local, setLocal] = useState<LocalConfig>(INITIAL_LOCAL)
-  const [schedule, setSchedule] = useState<ScheduleDay[]>(INITIAL_SCHEDULE)
-  const [payments, setPayments] = useState<PaymentsConfig>(INITIAL_PAYMENTS)
-  const [shipping, setShipping] = useState<ShippingConfig>(INITIAL_SHIPPING)
+  const [local, setLocal] = useState<LocalConfig>(persisted.local)
+  const [schedule, setSchedule] = useState<ScheduleDay[]>(persisted.schedule)
+  const [payments, setPayments] = useState<PaymentsConfig>(persisted.payments)
+  const [shipping, setShipping] = useState<ShippingConfig>(persisted.shipping)
+
+  useEffect(() => {
+    savePersistedState({ categories, products, local, schedule, payments, shipping, localOpen })
+  }, [categories, products, local, schedule, payments, shipping, localOpen])
 
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -201,7 +202,10 @@ export function PanelAdmin() {
 
   const toggleStatus = () => setLocalOpen((v) => !v)
 
-  const onOpenCustomerView = () => showToast('Vista del cliente · disponible al integrar Pedido Express')
+  const onOpenCustomerView = () => {
+    const url = window.location.origin + window.location.pathname + '#/pedido'
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   const activeNav = NAV.find((n) => n.id === activeSection) ?? NAV[0]
   const availableCount = products.filter((p) => p.available).length

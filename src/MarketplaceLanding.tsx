@@ -1,19 +1,38 @@
 import { useState } from 'react'
-import { createLocale, useLocaleSummaries } from './store'
+import { createLocale, isCloudMode, useLocaleSummaries } from './store'
 import { navigate } from './router'
 import { useIsMobile } from './hooks/useMediaQuery'
 
 export function MarketplaceLanding() {
-  const summaries = useLocaleSummaries()
+  const summariesQ = useLocaleSummaries()
+  const summaries = summariesQ.data
   const isMobile = useIsMobile()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const name = newName.trim()
     if (!name) return
-    const newLocale = createLocale(name)
-    navigate({ kind: 'admin', slug: newLocale.slug })
+    setBusy(true)
+    try {
+      if (isCloudMode) {
+        // Cloud mode requires auth. Send the user to the panel; the
+        // auth screen will prompt sign-up before letting them create.
+        navigate({ kind: 'admin', slug: null })
+        setNewName('')
+        setCreating(false)
+        return
+      }
+      const newLocale = await createLocale(name)
+      navigate({ kind: 'admin', slug: newLocale.slug })
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : 'No pudimos crear el local.',
+      )
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -179,7 +198,21 @@ export function MarketplaceLanding() {
           </span>
         </div>
 
-        {summaries.length === 0 ? (
+        {summariesQ.loading ? (
+          <div
+            style={{
+              background: 'white',
+              border: '1px dashed rgba(26, 20, 16, 0.12)',
+              borderRadius: 18,
+              padding: '40px 24px',
+              textAlign: 'center',
+              color: '#7A6E66',
+              fontSize: 13.5,
+            }}
+          >
+            Cargando locales…
+          </div>
+        ) : summaries.length === 0 ? (
           <div
             style={{
               background: 'white',
@@ -384,7 +417,7 @@ export function MarketplaceLanding() {
                 autoFocus
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate()
+                  if (e.key === 'Enter') void handleCreate()
                   if (e.key === 'Escape') {
                     setCreating(false)
                     setNewName('')
@@ -402,20 +435,21 @@ export function MarketplaceLanding() {
                 }}
               />
               <button
-                onClick={handleCreate}
+                onClick={() => void handleCreate()}
+                disabled={busy}
                 style={{
-                  background: '#E54B2A',
+                  background: busy ? 'rgba(26, 20, 16, 0.4)' : '#E54B2A',
                   color: 'white',
                   border: 'none',
                   padding: '8px 14px',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
-                  cursor: 'pointer',
+                  cursor: busy ? 'wait' : 'pointer',
                   flexShrink: 0,
                 }}
               >
-                Crear
+                {busy ? '…' : 'Crear'}
               </button>
             </div>
           ) : (

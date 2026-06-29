@@ -17,6 +17,9 @@ interface SidebarProps {
   onCreateLocale: (name: string) => void
   onDeleteCurrentLocale: () => void
   onGoLanding: () => void
+  cloudEnabled?: boolean
+  userEmail?: string | null
+  onSignOut?: () => void
 }
 
 function navItemStyle(active: boolean): React.CSSProperties {
@@ -61,8 +64,12 @@ export function Sidebar({
   onCreateLocale,
   onDeleteCurrentLocale,
   onGoLanding,
+  cloudEnabled = false,
+  userEmail = null,
+  onSignOut,
 }: SidebarProps) {
-  const summaries = useLocaleSummaries()
+  const summariesQ = useLocaleSummaries()
+  const summaries = summariesQ.data
   const [menuOpen, setMenuOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -567,24 +574,54 @@ export function Sidebar({
                 fontSize: 12,
               }}
             >
-              M
+              {userEmail ? userEmail.charAt(0).toUpperCase() : 'M'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 12.5, lineHeight: 1.2 }}>Martín G.</div>
-              <div style={{ fontSize: 10.5, color: '#7A6E66', marginTop: 1 }}>Propietario</div>
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 12.5,
+                  lineHeight: 1.2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {userEmail ?? 'Martín G.'}
+              </div>
+              <div style={{ fontSize: 10.5, color: '#7A6E66', marginTop: 1 }}>
+                {cloudEnabled ? 'Sesión activa' : 'Modo local'}
+              </div>
             </div>
-            <button
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#7A6E66',
-                fontSize: 14,
-                padding: 4,
-              }}
-            >
-              ⚙
-            </button>
+            {cloudEnabled && onSignOut ? (
+              <button
+                onClick={onSignOut}
+                title="Cerrar sesión"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#7A6E66',
+                  fontSize: 14,
+                  padding: 4,
+                }}
+              >
+                ↩
+              </button>
+            ) : (
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#7A6E66',
+                  fontSize: 14,
+                  padding: 4,
+                }}
+              >
+                ⚙
+              </button>
+            )}
           </div>
         </div>
       </aside>

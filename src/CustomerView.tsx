@@ -33,11 +33,81 @@ interface CustomerViewProps {
 }
 
 export function CustomerView({ slug }: CustomerViewProps) {
-  const store = useLocaleState(slug)
-  if (!store) {
+  const storeQ = useLocaleState(slug)
+  if (storeQ.loading) return <CustomerLoadingScreen />
+  if (storeQ.error) {
+    return <CustomerErrorScreen slug={slug} message={storeQ.error} />
+  }
+  if (!storeQ.data) {
     return <MissingLocaleScreen slug={slug} />
   }
-  return <CustomerViewInner store={store} />
+  return <CustomerViewInner store={storeQ.data} />
+}
+
+function CustomerLoadingScreen() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#FAF6F2',
+        color: '#7A6E66',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 14,
+      }}
+    >
+      Cargando menú…
+    </div>
+  )
+}
+
+function CustomerErrorScreen({ slug, message }: { slug: string; message: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#FAF6F2',
+        color: '#1A1410',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 56, marginBottom: 10 }}>😵</div>
+      <h1
+        style={{
+          fontFamily: "'Bricolage Grotesque', sans-serif",
+          fontWeight: 700,
+          fontSize: 22,
+          margin: '0 0 6px',
+        }}
+      >
+        No pudimos cargar el menú
+      </h1>
+      <p style={{ color: '#7A6E66', maxWidth: 380, margin: '0 0 18px', lineHeight: 1.5 }}>
+        {message} (local: <code>{slug}</code>)
+      </p>
+      <button
+        onClick={() => navigate({ kind: 'landing' })}
+        style={{
+          background: '#1A1410',
+          color: 'white',
+          border: 'none',
+          padding: '11px 18px',
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: 13.5,
+          cursor: 'pointer',
+        }}
+      >
+        Volver al inicio
+      </button>
+    </div>
+  )
 }
 
 function MissingLocaleScreen({ slug }: { slug: string }) {

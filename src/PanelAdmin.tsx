@@ -11,16 +11,19 @@ import {
   createLocale,
   deleteLocale,
   ensureDefaultLocale,
-  listLocaleSummaries,
-  loadLocale,
+  isCloudMode,
   saveLocale,
+  useLocaleState,
+  useLocaleSummaries,
 } from './store'
 import type { LocaleState } from './store'
 import { useIsMobile } from './hooks/useMediaQuery'
+import { useAuth } from './lib/auth'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { Toast } from './components/Toast'
 import { ProductDrawer } from './components/ProductDrawer'
+import { AuthScreen } from './components/AuthScreen'
 import { InicioSection } from './sections/InicioSection'
 import { MenuSection } from './sections/MenuSection'
 import { LocalSection } from './sections/LocalSection'
@@ -37,20 +40,107 @@ interface PanelAdminProps {
 
 export function PanelAdmin({ slug }: PanelAdminProps) {
   const isMobile = useIsMobile()
+  const auth = useAuth()
 
-  const resolvedSlug = slug ?? ensureDefaultLocale()
-  useEffect(() => {
-    if (!slug) {
-      navigate({ kind: 'admin', slug: resolvedSlug })
-    }
-  }, [slug, resolvedSlug])
-
-  const initial = loadLocale(resolvedSlug)
-  if (!initial) {
-    return <MissingLocaleScreen slug={resolvedSlug} />
+  // Auth gate in cloud mode
+  if (auth.cloudEnabled && auth.loading) {
+    return <FullScreenLoader text="Cargando…" />
+  }
+  if (auth.cloudEnabled && !auth.user) {
+    return <AuthScreen />
   }
 
-  return <PanelAdminInner initialLocale={initial} isMobile={isMobile} />
+  return <PanelAdminResolver slug={slug} isMobile={isMobile} />
+}
+
+interface ResolverProps {
+  slug: string | null
+  isMobile: boolean
+}
+
+function PanelAdminResolver({ slug, isMobile }: ResolverProps) {
+  const summaries = useLocaleSummaries()
+  const [resolvedSlug, setResolvedSlug] = useState<string | null>(slug)
+  const [seeding, setSeeding] = useState(false)
+
+  useEffect(() => {
+    if (slug) {
+      setResolvedSlug(slug)
+      return
+    }
+    if (summaries.loading) return
+
+    if (summaries.data.length > 0) {
+      const first = summaries.data[0].slug
+      setResolvedSlug(first)
+      navigate({ kind: 'admin', slug: first })
+    } else if (!isCloudMode) {
+      ensureDefaultLocale().then((s) => {
+        if (s) {
+          setResolvedSlug(s)
+          navigate({ kind: 'admin', slug: s })
+        }
+      })
+    }
+  }, [slug, summaries.loading, summaries.data])
+
+  if (summaries.loading) {
+    return <FullScreenLoader text="Cargando locales…" />
+  }
+
+  if (!resolvedSlug && summaries.data.length === 0) {
+    return (
+      <NoLocalesScreen
+        isMobile={isMobile}
+        seeding={seeding}
+        onCreate={async (name) => {
+          setSeeding(true)
+          try {
+            const created = await createLocale(name)
+            navigate({ kind: 'admin', slug: created.slug })
+          } catch (err) {
+            window.alert(
+              err instanceof Error ? err.message : 'No pudimos crear el local. Reintentá.',
+            )
+          } finally {
+            setSeeding(false)
+          }
+        }}
+      />
+    )
+  }
+
+  if (!resolvedSlug) return <FullScreenLoader text="Resolviendo local…" />
+
+  return <PanelAdminLoader slug={resolvedSlug} isMobile={isMobile} />
+}
+
+function PanelAdminLoader({ slug, isMobile }: { slug: string; isMobile: boolean }) {
+  const localeQ = useLocaleState(slug)
+
+  if (localeQ.loading) return <FullScreenLoader text="Cargando local…" />
+  if (localeQ.error) return <FullScreenLoader text={`Error: ${localeQ.error}`} />
+  if (!localeQ.data) return <MissingLocaleScreen slug={slug} />
+
+  return <PanelAdminInner initialLocale={localeQ.data} isMobile={isMobile} />
+}
+
+function FullScreenLoader({ text }: { text: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#F5F2EE',
+        color: '#7A6E66',
+        fontSize: 14,
+      }}
+    >
+      {text}
+    </div>
+  )
 }
 
 function MissingLocaleScreen({ slug }: { slug: string }) {
@@ -80,8 +170,7 @@ function MissingLocaleScreen({ slug }: { slug: string }) {
         Ese local no existe
       </h1>
       <p style={{ color: '#7A6E66', maxWidth: 380, margin: '0 0 18px', lineHeight: 1.5 }}>
-        No encontramos un local con el identificador <code>{slug}</code>. Tal vez fue borrado o
-        nunca existió en este navegador.
+        No encontramos un local con el identificador <code>{slug}</code>.
       </p>
       <button
         onClick={() => navigate({ kind: 'landing' })}
@@ -102,22 +191,155 @@ function MissingLocaleScreen({ slug }: { slug: string }) {
   )
 }
 
+function NoLocalesScreen({
+  isMobile,
+  seeding,
+  onCreate,
+}: {
+  isMobile: boolean
+  seeding: boolean
+  onCreate: (name: string) => Promise<void>
+}) {
+  const [name, setName] = useState('')
+  const { signOut } = useAuth()
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#F5F2EE',
+        color: '#1A1410',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 460,
+          background: 'white',
+          borderRadius: 18,
+          padding: isMobile ? 22 : 32,
+          boxShadow:
+            '0 1px 2px rgba(26, 20, 16, 0.04), 0 20px 50px -20px rgba(26, 20, 16, 0.25)',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 10 }}>🏪</div>
+        <h1
+          style={{
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            fontWeight: 700,
+            fontSize: 22,
+            margin: '0 0 6px',
+            letterSpacing: '-0.015em',
+          }}
+        >
+          Creá tu primer local
+        </h1>
+        <p style={{ fontSize: 13.5, color: '#7A6E66', margin: '0 0 18px', lineHeight: 1.5 }}>
+          Poné el nombre del local para empezar. Después podés sumar más desde el panel.
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            const trimmed = name.trim()
+            if (!trimmed) return
+            void onCreate(trimmed)
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+        >
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+            placeholder="Ej: Hamburguesería La Esquina"
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 12,
+              border: '1px solid rgba(26, 20, 16, 0.14)',
+              fontSize: 14.5,
+              outline: 'none',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={seeding || !name.trim()}
+            style={{
+              background: seeding || !name.trim() ? 'rgba(26, 20, 16, 0.4)' : '#E54B2A',
+              color: 'white',
+              border: 'none',
+              padding: 13,
+              borderRadius: 12,
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: seeding || !name.trim() ? 'wait' : 'pointer',
+              boxShadow: '0 8px 20px rgba(229, 75, 42, 0.25)',
+            }}
+          >
+            {seeding ? 'Creando…' : '+ Crear local'}
+          </button>
+        </form>
+        {isCloudMode ? (
+          <button
+            onClick={() => void signOut()}
+            style={{
+              marginTop: 14,
+              background: 'none',
+              border: 'none',
+              color: '#7A6E66',
+              cursor: 'pointer',
+              font: 'inherit',
+              fontSize: 12.5,
+            }}
+          >
+            Cerrar sesión
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 interface PanelAdminInnerProps {
   initialLocale: LocaleState
   isMobile: boolean
 }
 
 function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
+  const auth = useAuth()
   const [activeSection, setActiveSection] = useState<SectionId>('inicio')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [locale, setLocale] = useState<LocaleState>(initialLocale)
+  const skipSaveRef = useRef(true)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     setLocale(initialLocale)
+    skipSaveRef.current = true
   }, [initialLocale.slug])
 
   useEffect(() => {
-    saveLocale(locale)
+    if (skipSaveRef.current) {
+      skipSaveRef.current = false
+      return
+    }
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      void saveLocale(locale).catch((err) => {
+        console.error('saveLocale failed', err)
+        showToast('No pudimos guardar los cambios.')
+      })
+    }, 350)
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale])
 
   const {
@@ -171,7 +393,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
       cancelAddCategory()
       return
     }
-    const id = 'cat_' + (categories.length + 1) + '_' + name.replace(/\s+/g, '').toLowerCase()
+    const id = newClientId('cat')
     setLocale((s) => ({
       ...s,
       categories: [...s.categories, { id, name, emoji: '🍽' }],
@@ -234,7 +456,7 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
     }
     const editing = editingProductId
     if (editing === 'new') {
-      const newId = 'p_' + (products.length + 1) + '_' + f.name.replace(/\s+/g, '').toLowerCase().slice(0, 12)
+      const newId = newClientId('p')
       const newP = {
         id: newId,
         name: f.name,
@@ -336,8 +558,15 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
   }
 
   const handleCreateLocale = (name: string) => {
-    const created = createLocale(name)
-    navigate({ kind: 'admin', slug: created.slug })
+    void createLocale(name)
+      .then((created) => {
+        navigate({ kind: 'admin', slug: created.slug })
+      })
+      .catch((err) => {
+        window.alert(
+          err instanceof Error ? err.message : 'No pudimos crear el local. Reintentá.',
+        )
+      })
   }
 
   const handleDeleteThisLocale = () => {
@@ -347,13 +576,15 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
       )
     )
       return
-    const remaining = listLocaleSummaries().filter((s) => s.slug !== slug)
-    deleteLocale(slug)
-    if (remaining.length > 0) {
-      navigate({ kind: 'admin', slug: remaining[0].slug })
-    } else {
-      navigate({ kind: 'landing' })
-    }
+    void deleteLocale(slug)
+      .then(() => {
+        navigate({ kind: 'landing' })
+      })
+      .catch((err) => {
+        window.alert(
+          err instanceof Error ? err.message : 'No pudimos eliminar el local.',
+        )
+      })
   }
 
   const activeNav = NAV.find((n) => n.id === activeSection) ?? NAV[0]
@@ -387,6 +618,9 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
         onCreateLocale={handleCreateLocale}
         onDeleteCurrentLocale={handleDeleteThisLocale}
         onGoLanding={() => navigate({ kind: 'landing' })}
+        cloudEnabled={auth.cloudEnabled}
+        userEmail={auth.user?.email ?? null}
+        onSignOut={() => void auth.signOut()}
       />
 
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -497,4 +731,11 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
       <Toast message={toast} />
     </div>
   )
+}
+
+function newClientId(prefix: string): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID()
+  }
+  return `${prefix}_${Math.random().toString(36).slice(2)}${Date.now()}`
 }

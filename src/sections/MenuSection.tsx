@@ -8,6 +8,7 @@ interface MenuSectionProps {
   activeCategoryId: string | null
   addingCategory: boolean
   newCategoryDraft: string
+  isMobile: boolean
   onSelectCategory: (id: string) => void
   onStartAddCategory: () => void
   onCancelAddCategory: () => void
@@ -54,6 +55,7 @@ export function MenuSection({
   activeCategoryId,
   addingCategory,
   newCategoryDraft,
+  isMobile,
   onSelectCategory,
   onStartAddCategory,
   onCancelAddCategory,
@@ -296,22 +298,25 @@ export function MenuSection({
                 className="pa-hoverable"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '64px 1fr 110px 80px auto',
-                  gap: 14,
+                  gridTemplateColumns: isMobile ? '56px 1fr auto' : '64px 1fr 110px 80px auto',
+                  gridTemplateRows: isMobile ? 'auto auto' : undefined,
+                  rowGap: isMobile ? 8 : 0,
+                  columnGap: isMobile ? 12 : 14,
                   alignItems: 'center',
-                  padding: '12px 20px',
+                  padding: isMobile ? '12px 16px' : '12px 20px',
                   borderBottom: '1px solid rgba(26, 20, 16, 0.04)',
                   transition: 'background 120ms ease',
                 }}
               >
                 <div
                   style={{
-                    width: 64,
-                    height: 64,
+                    width: isMobile ? 56 : 64,
+                    height: isMobile ? 56 : 64,
                     borderRadius: 10,
                     overflow: 'hidden',
                     background: '#EEE7E0',
                     opacity: item.available ? 1 : 0.55,
+                    gridRow: isMobile ? 'span 2' : 'auto',
                   }}
                 >
                   <img
@@ -363,19 +368,23 @@ export function MenuSection({
                     {item.desc}
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontFamily: "'Bricolage Grotesque', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: item.available ? '#1A1410' : '#94918D',
-                  }}
-                >
-                  {formatPrice(item.price)}
-                </div>
-                <div style={{ justifySelf: 'center' }}>
-                  <Toggle on={item.available} onClick={() => onToggleProductAvail(item.id)} title="Disponibilidad" />
-                </div>
+                {!isMobile ? (
+                  <div
+                    style={{
+                      fontFamily: "'Bricolage Grotesque', sans-serif",
+                      fontWeight: 700,
+                      fontSize: 15,
+                      color: item.available ? '#1A1410' : '#94918D',
+                    }}
+                  >
+                    {formatPrice(item.price)}
+                  </div>
+                ) : null}
+                {!isMobile ? (
+                  <div style={{ justifySelf: 'center' }}>
+                    <Toggle on={item.available} onClick={() => onToggleProductAvail(item.id)} title="Disponibilidad" />
+                  </div>
+                ) : null}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <button
                     onClick={() => onEditProduct(item.id)}
@@ -417,6 +426,33 @@ export function MenuSection({
                     🗑
                   </button>
                 </div>
+                {isMobile ? (
+                  <div
+                    style={{
+                      gridColumn: '2 / span 2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "'Bricolage Grotesque', sans-serif",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        color: item.available ? '#1A1410' : '#94918D',
+                      }}
+                    >
+                      {formatPrice(item.price)}
+                    </div>
+                    <Toggle
+                      on={item.available}
+                      onClick={() => onToggleProductAvail(item.id)}
+                      title="Disponibilidad"
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

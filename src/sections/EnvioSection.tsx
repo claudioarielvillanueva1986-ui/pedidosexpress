@@ -4,6 +4,7 @@ import { inputStyle } from '../utils'
 
 interface EnvioSectionProps {
   shipping: ShippingConfig
+  isMobile: boolean
   onToggleDelivery: () => void
   onTogglePickup: () => void
   onShippingChange: (patch: Partial<ShippingConfig>) => void
@@ -22,21 +23,26 @@ function modeCardStyle(active: boolean): React.CSSProperties {
 
 export function EnvioSection({
   shipping,
+  isMobile,
   onToggleDelivery,
   onTogglePickup,
   onShippingChange,
 }: EnvioSectionProps) {
+  const sectionPad: React.CSSProperties = {
+    background: 'white',
+    borderRadius: 16,
+    padding: isMobile ? 16 : 22,
+    border: '1px solid rgba(26, 20, 16, 0.05)',
+  }
+  const grid2: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+    gap: 14,
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Modalidades */}
-      <section
-        style={{
-          background: 'white',
-          borderRadius: 16,
-          padding: 22,
-          border: '1px solid rgba(26, 20, 16, 0.05)',
-        }}
-      >
+      <section style={sectionPad}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ fontSize: 17 }}>🛵</span>
           <h3 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, margin: 0 }}>
@@ -47,7 +53,7 @@ export function EnvioSection({
           Activá lo que ofrecés. Si desactivás ambos, sólo se podrá consultar el menú.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
           <div style={modeCardStyle(shipping.deliveryEnabled)}>
             <div
               style={{
@@ -89,14 +95,7 @@ export function EnvioSection({
 
       {/* Costos */}
       {shipping.deliveryEnabled ? (
-        <section
-          style={{
-            background: 'white',
-            borderRadius: 16,
-            padding: 22,
-            border: '1px solid rgba(26, 20, 16, 0.05)',
-          }}
-        >
+        <section style={sectionPad}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 17 }}>💰</span>
             <h3
@@ -109,7 +108,7 @@ export function EnvioSection({
             Lo que ve y paga el cliente al elegir delivery.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={grid2}>
             <label style={{ display: 'block' }}>
               <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>
                 Costo de envío fijo

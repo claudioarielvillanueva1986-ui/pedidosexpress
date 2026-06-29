@@ -6,6 +6,7 @@ import { inputStyle } from '../utils'
 interface LocalSectionProps {
   local: LocalConfig
   schedule: ScheduleDay[]
+  isMobile: boolean
   onLocalChange: (patch: Partial<LocalConfig>) => void
   onColorChange: (color: string) => void
   onToggleDay: (idx: number) => void
@@ -28,22 +29,27 @@ function swatchStyle(color: string, active: boolean): React.CSSProperties {
 export function LocalSection({
   local,
   schedule,
+  isMobile,
   onLocalChange,
   onColorChange,
   onToggleDay,
   onScheduleFieldChange,
 }: LocalSectionProps) {
+  const grid2: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+    gap: 14,
+  }
+  const sectionPad: React.CSSProperties = {
+    background: 'white',
+    borderRadius: 16,
+    padding: isMobile ? 16 : 22,
+    border: '1px solid rgba(26, 20, 16, 0.05)',
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Marca */}
-      <section
-        style={{
-          background: 'white',
-          borderRadius: 16,
-          padding: 22,
-          border: '1px solid rgba(26, 20, 16, 0.05)',
-        }}
-      >
+      <section style={sectionPad}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ fontSize: 17 }}>🎨</span>
           <h3 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, margin: 0 }}>
@@ -54,7 +60,7 @@ export function LocalSection({
           Lo primero que ven tus clientes en el menú digital.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={grid2}>
           <label style={{ display: 'block' }}>
             <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>
               Nombre del local
@@ -109,14 +115,7 @@ export function LocalSection({
       </section>
 
       {/* Contacto */}
-      <section
-        style={{
-          background: 'white',
-          borderRadius: 16,
-          padding: 22,
-          border: '1px solid rgba(26, 20, 16, 0.05)',
-        }}
-      >
+      <section style={sectionPad}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ fontSize: 17 }}>📞</span>
           <h3 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, margin: 0 }}>
@@ -127,7 +126,7 @@ export function LocalSection({
           Donde llegan los pedidos y dónde te encuentran tus clientes.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={grid2}>
           <label style={{ display: 'block' }}>
             <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>
               WhatsApp del local <span style={{ color: '#E54B2A' }}>*</span>
@@ -178,14 +177,7 @@ export function LocalSection({
       </section>
 
       {/* Horarios */}
-      <section
-        style={{
-          background: 'white',
-          borderRadius: 16,
-          padding: 22,
-          border: '1px solid rgba(26, 20, 16, 0.05)',
-        }}
-      >
+      <section style={sectionPad}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ fontSize: 17 }}>🕒</span>
           <h3 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, margin: 0 }}>
@@ -202,8 +194,8 @@ export function LocalSection({
               key={row.day}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '110px auto 1fr',
-                gap: 14,
+                gridTemplateColumns: isMobile ? '90px auto 1fr' : '110px auto 1fr',
+                gap: isMobile ? 10 : 14,
                 alignItems: 'center',
                 padding: '8px 0',
               }}
@@ -224,7 +216,7 @@ export function LocalSection({
                     fontSize: 13,
                     outline: 'none',
                     color: '#1A1410',
-                    width: 110,
+                    width: isMobile ? 92 : 110,
                   }}
                 />
                 <span style={{ fontSize: 12, color: '#7A6E66' }}>a</span>
@@ -241,7 +233,7 @@ export function LocalSection({
                     fontSize: 13,
                     outline: 'none',
                     color: '#1A1410',
-                    width: 110,
+                    width: isMobile ? 92 : 110,
                   }}
                 />
                 {!row.open ? (

@@ -4,6 +4,7 @@ import { inputStyle } from '../utils'
 
 interface PagosSectionProps {
   payments: PaymentsConfig
+  isMobile: boolean
   onToggleCash: () => void
   onToggleTransfer: () => void
   onPaymentsChange: (patch: Partial<PaymentsConfig>) => void
@@ -20,14 +21,20 @@ function payCardStyle(active: boolean): React.CSSProperties {
   }
 }
 
-export function PagosSection({ payments, onToggleCash, onToggleTransfer, onPaymentsChange }: PagosSectionProps) {
+export function PagosSection({
+  payments,
+  isMobile,
+  onToggleCash,
+  onToggleTransfer,
+  onPaymentsChange,
+}: PagosSectionProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <section
         style={{
           background: 'white',
           borderRadius: 16,
-          padding: 22,
+          padding: isMobile ? 16 : 22,
           border: '1px solid rgba(26, 20, 16, 0.05)',
         }}
       >
@@ -140,7 +147,7 @@ export function PagosSection({ payments, onToggleCash, onToggleTransfer, onPayme
                       paddingTop: 14,
                       borderTop: '1px solid rgba(26, 20, 16, 0.06)',
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
+                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                       gap: 12,
                     }}
                   >

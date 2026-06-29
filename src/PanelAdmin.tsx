@@ -11,6 +11,7 @@ import type {
 } from './types'
 import { NAV } from './data'
 import { loadPersistedState, savePersistedState } from './store'
+import { useIsMobile } from './hooks/useMediaQuery'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { Toast } from './components/Toast'
@@ -26,6 +27,8 @@ const EMPTY_DRAFT_IMG =
 
 export function PanelAdmin() {
   const persisted = loadPersistedState()
+  const isMobile = useIsMobile()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [activeSection, setActiveSection] = useState<SectionId>('inicio')
   const [localOpen, setLocalOpen] = useState(persisted.localOpen)
@@ -219,22 +222,39 @@ export function PanelAdmin() {
         minHeight: '100vh',
         background: '#F5F2EE',
         color: '#1A1410',
-        display: 'grid',
-        gridTemplateColumns: '252px 1fr',
+        display: isMobile ? 'block' : 'grid',
+        gridTemplateColumns: isMobile ? undefined : '252px 1fr',
       }}
     >
-      <Sidebar nav={NAV} active={activeSection} onNavigate={setActiveSection} />
+      <Sidebar
+        nav={NAV}
+        active={activeSection}
+        onNavigate={setActiveSection}
+        isMobile={isMobile}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TopBar
           title={activeNav.title}
           subtitle={activeNav.subtitle}
           isOpen={localOpen}
+          isMobile={isMobile}
           onToggleStatus={toggleStatus}
           onOpenCustomerView={onOpenCustomerView}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
 
-        <div style={{ padding: '28px 32px 48px', flex: 1, minWidth: 0, maxWidth: 1200, width: '100%' }}>
+        <div
+          style={{
+            padding: isMobile ? '20px 16px 48px' : '28px 32px 48px',
+            flex: 1,
+            minWidth: 0,
+            maxWidth: 1200,
+            width: '100%',
+          }}
+        >
           {activeSection === 'inicio' ? (
             <InicioSection
               isOpen={localOpen}
@@ -244,6 +264,7 @@ export function PanelAdmin() {
               payments={payments}
               shipping={shipping}
               local={local}
+              isMobile={isMobile}
               onToggleStatus={toggleStatus}
               onGoMenu={() => setActiveSection('menu')}
               onGoLocal={() => setActiveSection('local')}
@@ -259,6 +280,7 @@ export function PanelAdmin() {
               activeCategoryId={activeAdminCat}
               addingCategory={addingCategory}
               newCategoryDraft={newCategoryDraft}
+              isMobile={isMobile}
               onSelectCategory={setActiveAdminCat}
               onStartAddCategory={startAddCategory}
               onCancelAddCategory={cancelAddCategory}
@@ -276,6 +298,7 @@ export function PanelAdmin() {
             <LocalSection
               local={local}
               schedule={schedule}
+              isMobile={isMobile}
               onLocalChange={updateLocal}
               onColorChange={setColor}
               onToggleDay={toggleScheduleDay}
@@ -286,6 +309,7 @@ export function PanelAdmin() {
           {activeSection === 'pagos' ? (
             <PagosSection
               payments={payments}
+              isMobile={isMobile}
               onToggleCash={toggleCash}
               onToggleTransfer={toggleTransfer}
               onPaymentsChange={updatePayments}
@@ -295,6 +319,7 @@ export function PanelAdmin() {
           {activeSection === 'envio' ? (
             <EnvioSection
               shipping={shipping}
+              isMobile={isMobile}
               onToggleDelivery={toggleDelivery}
               onTogglePickup={togglePickup}
               onShippingChange={updateShipping}

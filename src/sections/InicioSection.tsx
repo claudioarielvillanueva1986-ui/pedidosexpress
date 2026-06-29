@@ -9,6 +9,7 @@ interface InicioSectionProps {
   payments: PaymentsConfig
   shipping: ShippingConfig
   local: LocalConfig
+  isMobile?: boolean
   onToggleStatus: () => void
   onGoMenu: () => void
   onGoLocal: () => void
@@ -31,6 +32,7 @@ export function InicioSection({
   payments,
   shipping,
   local,
+  isMobile = false,
   onToggleStatus,
   onGoMenu,
   onGoLocal,
@@ -81,10 +83,10 @@ export function InicioSection({
         style={{
           background: 'white',
           borderRadius: 18,
-          padding: 24,
+          padding: isMobile ? 18 : 24,
           display: 'grid',
-          gridTemplateColumns: '1fr auto',
-          gap: 20,
+          gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
+          gap: isMobile ? 14 : 20,
           alignItems: 'center',
           border: '1px solid rgba(26, 20, 16, 0.05)',
         }}
@@ -156,14 +158,15 @@ export function InicioSection({
         </div>
         <div
           style={{
-            width: 120,
-            height: 120,
+            width: isMobile ? 84 : 120,
+            height: isMobile ? 84 : 120,
             borderRadius: 24,
             background: 'linear-gradient(135deg, #FFE4D6, #FCC89E)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 56,
+            fontSize: isMobile ? 42 : 56,
+            justifySelf: isMobile ? 'center' : 'auto',
           }}
         >
           🔥
@@ -192,7 +195,7 @@ export function InicioSection({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr auto auto',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr auto auto',
             gap: 8,
             alignItems: 'stretch',
           }}

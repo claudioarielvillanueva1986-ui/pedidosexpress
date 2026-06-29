@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
-  Category,
   LocalConfig,
   PaymentsConfig,
-  Product,
   ProductDraft,
-  ScheduleDay,
   SectionId,
   ShippingConfig,
 } from './types'
 import { NAV } from './data'
-import { loadPersistedState, savePersistedState } from './store'
+import {
+  createLocale,
+  deleteLocale,
+  ensureDefaultLocale,
+  listLocaleSummaries,
+  loadLocale,
+  saveLocale,
+} from './store'
+import type { LocaleState } from './store'
 import { useIsMobile } from './hooks/useMediaQuery'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
@@ -21,24 +26,114 @@ import { MenuSection } from './sections/MenuSection'
 import { LocalSection } from './sections/LocalSection'
 import { PagosSection } from './sections/PagosSection'
 import { EnvioSection } from './sections/EnvioSection'
+import { buildUrl, navigate } from './router'
 
 const EMPTY_DRAFT_IMG =
   'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80&auto=format&fit=crop'
 
-export function PanelAdmin() {
-  const persisted = loadPersistedState()
+interface PanelAdminProps {
+  slug: string | null
+}
+
+export function PanelAdmin({ slug }: PanelAdminProps) {
   const isMobile = useIsMobile()
+
+  const resolvedSlug = slug ?? ensureDefaultLocale()
+  useEffect(() => {
+    if (!slug) {
+      navigate({ kind: 'admin', slug: resolvedSlug })
+    }
+  }, [slug, resolvedSlug])
+
+  const initial = loadLocale(resolvedSlug)
+  if (!initial) {
+    return <MissingLocaleScreen slug={resolvedSlug} />
+  }
+
+  return <PanelAdminInner initialLocale={initial} isMobile={isMobile} />
+}
+
+function MissingLocaleScreen({ slug }: { slug: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#F5F2EE',
+        color: '#1A1410',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 48, marginBottom: 12 }}>🏪</div>
+      <h1
+        style={{
+          fontFamily: "'Bricolage Grotesque', sans-serif",
+          fontWeight: 700,
+          fontSize: 24,
+          margin: '0 0 8px',
+        }}
+      >
+        Ese local no existe
+      </h1>
+      <p style={{ color: '#7A6E66', maxWidth: 380, margin: '0 0 18px', lineHeight: 1.5 }}>
+        No encontramos un local con el identificador <code>{slug}</code>. Tal vez fue borrado o
+        nunca existió en este navegador.
+      </p>
+      <button
+        onClick={() => navigate({ kind: 'landing' })}
+        style={{
+          background: '#1A1410',
+          color: 'white',
+          border: 'none',
+          padding: '11px 18px',
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: 13.5,
+          cursor: 'pointer',
+        }}
+      >
+        Volver al inicio
+      </button>
+    </div>
+  )
+}
+
+interface PanelAdminInnerProps {
+  initialLocale: LocaleState
+  isMobile: boolean
+}
+
+function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
+  const [activeSection, setActiveSection] = useState<SectionId>('inicio')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const [activeSection, setActiveSection] = useState<SectionId>('inicio')
-  const [localOpen, setLocalOpen] = useState(persisted.localOpen)
+  const [locale, setLocale] = useState<LocaleState>(initialLocale)
+  useEffect(() => {
+    setLocale(initialLocale)
+  }, [initialLocale.slug])
 
-  const [categories, setCategories] = useState<Category[]>(persisted.categories)
-  const [products, setProducts] = useState<Product[]>(persisted.products)
+  useEffect(() => {
+    saveLocale(locale)
+  }, [locale])
+
+  const {
+    slug,
+    categories,
+    products,
+    local,
+    schedule,
+    payments,
+    shipping,
+    localOpen,
+  } = locale
+
   const [activeAdminCat, setActiveAdminCat] = useState<string | null>(
-    persisted.categories[0]?.id ?? null,
+    categories[0]?.id ?? null,
   )
-
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryDraft, setNewCategoryDraft] = useState('')
 
@@ -51,15 +146,6 @@ export function PanelAdmin() {
     categoryId: '',
     available: true,
   })
-
-  const [local, setLocal] = useState<LocalConfig>(persisted.local)
-  const [schedule, setSchedule] = useState<ScheduleDay[]>(persisted.schedule)
-  const [payments, setPayments] = useState<PaymentsConfig>(persisted.payments)
-  const [shipping, setShipping] = useState<ShippingConfig>(persisted.shipping)
-
-  useEffect(() => {
-    savePersistedState({ categories, products, local, schedule, payments, shipping, localOpen })
-  }, [categories, products, local, schedule, payments, shipping, localOpen])
 
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,20 +171,27 @@ export function PanelAdmin() {
       cancelAddCategory()
       return
     }
-    const id = 'cat_' + Date.now()
-    setCategories((cs) => [...cs, { id, name, emoji: '🍽' }])
+    const id = 'cat_' + (categories.length + 1) + '_' + name.replace(/\s+/g, '').toLowerCase()
+    setLocale((s) => ({
+      ...s,
+      categories: [...s.categories, { id, name, emoji: '🍽' }],
+    }))
     setActiveAdminCat(id)
     setAddingCategory(false)
     setNewCategoryDraft('')
     showToast('Categoría creada')
   }
-  const deleteCategory = (id: string) => {
+  const handleDeleteCategory = (id: string) => {
     if (!window.confirm('¿Eliminar la categoría y todos sus productos?')) return
-    setCategories((cs) => {
-      const remaining = cs.filter((c) => c.id !== id)
-      setProducts((ps) => ps.filter((p) => p.categoryId !== id))
-      setActiveAdminCat(remaining.length ? remaining[0].id : null)
-      return remaining
+    setLocale((s) => {
+      const cats = s.categories.filter((c) => c.id !== id)
+      const prods = s.products.filter((p) => p.categoryId !== id)
+      return { ...s, categories: cats, products: prods }
+    })
+    setActiveAdminCat((cur) => {
+      if (cur !== id) return cur
+      const next = categories.find((c) => c.id !== id)
+      return next?.id ?? null
     })
     showToast('Categoría eliminada')
   }
@@ -141,8 +234,9 @@ export function PanelAdmin() {
     }
     const editing = editingProductId
     if (editing === 'new') {
-      const newP: Product = {
-        id: 'p_' + Date.now(),
+      const newId = 'p_' + (products.length + 1) + '_' + f.name.replace(/\s+/g, '').toLowerCase().slice(0, 12)
+      const newP = {
+        id: newId,
         name: f.name,
         desc: f.desc,
         price: Number(f.price),
@@ -150,12 +244,13 @@ export function PanelAdmin() {
         categoryId: f.categoryId,
         available: f.available,
       }
-      setProducts((ps) => [...ps, newP])
-      setActiveAdminCat(newP.categoryId)
+      setLocale((s) => ({ ...s, products: [...s.products, newP] }))
+      setActiveAdminCat(f.categoryId)
       showToast('Producto creado')
     } else if (editing) {
-      setProducts((ps) =>
-        ps.map((p) =>
+      setLocale((s) => ({
+        ...s,
+        products: s.products.map((p) =>
           p.id === editing
             ? {
                 ...p,
@@ -168,46 +263,97 @@ export function PanelAdmin() {
               }
             : p,
         ),
-      )
+      }))
       showToast('Producto actualizado')
     }
     setEditingProductId(null)
   }
 
   const toggleProductAvail = (id: string) =>
-    setProducts((ps) => ps.map((p) => (p.id === id ? { ...p, available: !p.available } : p)))
+    setLocale((s) => ({
+      ...s,
+      products: s.products.map((p) => (p.id === id ? { ...p, available: !p.available } : p)),
+    }))
 
-  const deleteProduct = (id: string) => {
+  const handleDeleteProduct = (id: string) => {
     if (!window.confirm('¿Eliminar este producto?')) return
-    setProducts((ps) => ps.filter((p) => p.id !== id))
+    setLocale((s) => ({ ...s, products: s.products.filter((p) => p.id !== id) }))
     showToast('Producto eliminado')
   }
 
   // ---- Local
-  const updateLocal = (patch: Partial<LocalConfig>) => setLocal((l) => ({ ...l, ...patch }))
-  const setColor = (color: string) => setLocal((l) => ({ ...l, primaryColor: color }))
+  const updateLocal = (patch: Partial<LocalConfig>) =>
+    setLocale((s) => ({ ...s, local: { ...s.local, ...patch } }))
+  const setColor = (color: string) =>
+    setLocale((s) => ({ ...s, local: { ...s.local, primaryColor: color } }))
 
   // ---- Schedule
   const toggleScheduleDay = (idx: number) =>
-    setSchedule((s) => s.map((d, i) => (i === idx ? { ...d, open: !d.open } : d)))
+    setLocale((s) => ({
+      ...s,
+      schedule: s.schedule.map((d, i) => (i === idx ? { ...d, open: !d.open } : d)),
+    }))
   const setScheduleField = (idx: number, field: 'from' | 'to', value: string) =>
-    setSchedule((s) => s.map((d, i) => (i === idx ? { ...d, [field]: value } : d)))
+    setLocale((s) => ({
+      ...s,
+      schedule: s.schedule.map((d, i) => (i === idx ? { ...d, [field]: value } : d)),
+    }))
 
   // ---- Payments
-  const updatePayments = (patch: Partial<PaymentsConfig>) => setPayments((p) => ({ ...p, ...patch }))
-  const toggleCash = () => setPayments((p) => ({ ...p, cashEnabled: !p.cashEnabled }))
-  const toggleTransfer = () => setPayments((p) => ({ ...p, transferEnabled: !p.transferEnabled }))
+  const updatePayments = (patch: Partial<PaymentsConfig>) =>
+    setLocale((s) => ({ ...s, payments: { ...s.payments, ...patch } }))
+  const toggleCash = () =>
+    setLocale((s) => ({ ...s, payments: { ...s.payments, cashEnabled: !s.payments.cashEnabled } }))
+  const toggleTransfer = () =>
+    setLocale((s) => ({
+      ...s,
+      payments: { ...s.payments, transferEnabled: !s.payments.transferEnabled },
+    }))
 
   // ---- Shipping
-  const updateShipping = (patch: Partial<ShippingConfig>) => setShipping((s) => ({ ...s, ...patch }))
-  const toggleDelivery = () => setShipping((s) => ({ ...s, deliveryEnabled: !s.deliveryEnabled }))
-  const togglePickup = () => setShipping((s) => ({ ...s, pickupEnabled: !s.pickupEnabled }))
+  const updateShipping = (patch: Partial<ShippingConfig>) =>
+    setLocale((s) => ({ ...s, shipping: { ...s.shipping, ...patch } }))
+  const toggleDelivery = () =>
+    setLocale((s) => ({
+      ...s,
+      shipping: { ...s.shipping, deliveryEnabled: !s.shipping.deliveryEnabled },
+    }))
+  const togglePickup = () =>
+    setLocale((s) => ({
+      ...s,
+      shipping: { ...s.shipping, pickupEnabled: !s.shipping.pickupEnabled },
+    }))
 
-  const toggleStatus = () => setLocalOpen((v) => !v)
+  const toggleStatus = () => setLocale((s) => ({ ...s, localOpen: !s.localOpen }))
 
   const onOpenCustomerView = () => {
-    const url = window.location.origin + window.location.pathname + '#/pedido'
+    const url = buildUrl({ kind: 'customer', slug })
     window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleSwitchLocale = (nextSlug: string) => {
+    navigate({ kind: 'admin', slug: nextSlug })
+  }
+
+  const handleCreateLocale = (name: string) => {
+    const created = createLocale(name)
+    navigate({ kind: 'admin', slug: created.slug })
+  }
+
+  const handleDeleteThisLocale = () => {
+    if (
+      !window.confirm(
+        `¿Eliminar el local "${local.name}" y todos sus datos? Esta acción no se puede deshacer.`,
+      )
+    )
+      return
+    const remaining = listLocaleSummaries().filter((s) => s.slug !== slug)
+    deleteLocale(slug)
+    if (remaining.length > 0) {
+      navigate({ kind: 'admin', slug: remaining[0].slug })
+    } else {
+      navigate({ kind: 'landing' })
+    }
   }
 
   const activeNav = NAV.find((n) => n.id === activeSection) ?? NAV[0]
@@ -233,6 +379,14 @@ export function PanelAdmin() {
         isMobile={isMobile}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        currentSlug={slug}
+        currentName={local.name}
+        currentLogo={local.logo}
+        localOpen={localOpen}
+        onSwitchLocale={handleSwitchLocale}
+        onCreateLocale={handleCreateLocale}
+        onDeleteCurrentLocale={handleDeleteThisLocale}
+        onGoLanding={() => navigate({ kind: 'landing' })}
       />
 
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -265,11 +419,13 @@ export function PanelAdmin() {
               shipping={shipping}
               local={local}
               isMobile={isMobile}
+              publicUrl={buildUrl({ kind: 'customer', slug })}
               onToggleStatus={toggleStatus}
               onGoMenu={() => setActiveSection('menu')}
               onGoLocal={() => setActiveSection('local')}
               onGoPagos={() => setActiveSection('pagos')}
               onGoEnvio={() => setActiveSection('envio')}
+              onOpenCustomerView={onOpenCustomerView}
             />
           ) : null}
 
@@ -286,10 +442,10 @@ export function PanelAdmin() {
               onCancelAddCategory={cancelAddCategory}
               onNewCategoryInput={setNewCategoryDraft}
               onConfirmAddCategory={confirmAddCategory}
-              onDeleteCategory={deleteCategory}
+              onDeleteCategory={handleDeleteCategory}
               onStartNewProduct={startNewProduct}
               onEditProduct={editProduct}
-              onDeleteProduct={deleteProduct}
+              onDeleteProduct={handleDeleteProduct}
               onToggleProductAvail={toggleProductAvail}
             />
           ) : null}

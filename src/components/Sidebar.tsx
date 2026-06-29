@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
 import type { NavItem, SectionId } from '../types'
+import { useLocaleSummaries } from '../store'
 
 interface SidebarProps {
   nav: NavItem[]
@@ -7,6 +9,14 @@ interface SidebarProps {
   isMobile: boolean
   open: boolean
   onClose: () => void
+  currentSlug: string
+  currentName: string
+  currentLogo: string
+  localOpen: boolean
+  onSwitchLocale: (slug: string) => void
+  onCreateLocale: (name: string) => void
+  onDeleteCurrentLocale: () => void
+  onGoLanding: () => void
 }
 
 function navItemStyle(active: boolean): React.CSSProperties {
@@ -28,7 +38,65 @@ function navItemStyle(active: boolean): React.CSSProperties {
   }
 }
 
-export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: SidebarProps) {
+function initialsFor(name: string): string {
+  const cleaned = name.trim()
+  if (!cleaned) return '??'
+  const words = cleaned.split(/\s+/)
+  if (words.length === 1) return cleaned.slice(0, 2).toUpperCase()
+  return (words[0][0] + words[1][0]).toUpperCase()
+}
+
+export function Sidebar({
+  nav,
+  active,
+  onNavigate,
+  isMobile,
+  open,
+  onClose,
+  currentSlug,
+  currentName,
+  currentLogo,
+  localOpen,
+  onSwitchLocale,
+  onCreateLocale,
+  onDeleteCurrentLocale,
+  onGoLanding,
+}: SidebarProps) {
+  const summaries = useLocaleSummaries()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDocClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+        setCreating(false)
+        setNewName('')
+      }
+    }
+    window.addEventListener('click', onDocClick)
+    return () => window.removeEventListener('click', onDocClick)
+  }, [menuOpen])
+
+  const handleSwitch = (slug: string) => {
+    setMenuOpen(false)
+    setCreating(false)
+    setNewName('')
+    onSwitchLocale(slug)
+  }
+
+  const handleConfirmCreate = () => {
+    const name = newName.trim()
+    if (!name) return
+    onCreateLocale(name)
+    setCreating(false)
+    setNewName('')
+    setMenuOpen(false)
+  }
+
   const sidebarStyle: React.CSSProperties = isMobile
     ? {
         position: 'fixed',
@@ -89,7 +157,19 @@ export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: Si
             gap: 10,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={onGoLanding}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
             <div
               style={{
                 width: 34,
@@ -121,7 +201,7 @@ export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: Si
                 Panel del comerciante
               </div>
             </div>
-          </div>
+          </button>
           {isMobile ? (
             <button
               onClick={onClose}
@@ -142,10 +222,13 @@ export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: Si
           ) : null}
         </div>
 
-        {/* Workspace switcher */}
-        <div style={{ padding: '12px 12px 6px' }}>
+        {/* Workspace switcher with locale picker */}
+        <div style={{ padding: '12px 12px 6px', position: 'relative' }} ref={menuRef}>
           <button
-            className="pa-btn-light"
+            onClick={(e) => {
+              e.stopPropagation()
+              setMenuOpen((v) => !v)
+            }}
             style={{
               width: '100%',
               background: '#F5F2EE',
@@ -173,7 +256,7 @@ export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: Si
                 flexShrink: 0,
               }}
             >
-              HE
+              {currentLogo && currentLogo.length <= 2 ? currentLogo : initialsFor(currentName)}
             </div>
             <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
               <div
@@ -186,7 +269,7 @@ export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: Si
                   textOverflow: 'ellipsis',
                 }}
               >
-                Hamburguesería La Esquina
+                {currentName}
               </div>
               <div
                 style={{
@@ -203,15 +286,185 @@ export function Sidebar({ nav, active, onNavigate, isMobile, open, onClose }: Si
                     width: 5,
                     height: 5,
                     borderRadius: '50%',
-                    background: '#22C55E',
+                    background: localOpen ? '#22C55E' : '#94918D',
                     display: 'inline-block',
                   }}
                 />
-                <span>Plan Pro · activo</span>
+                <span>{localOpen ? 'Abierto' : 'Cerrado'}</span>
+                <span style={{ color: 'rgba(26, 20, 16, 0.25)' }}>·</span>
+                <span>/{currentSlug}</span>
               </div>
             </div>
             <span style={{ color: '#7A6E66', fontSize: 11 }}>⇅</span>
           </button>
+
+          {menuOpen ? (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'absolute',
+                top: 'calc(100% - 2px)',
+                left: 12,
+                right: 12,
+                background: 'white',
+                borderRadius: 12,
+                border: '1px solid rgba(26, 20, 16, 0.08)',
+                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.15)',
+                padding: 6,
+                zIndex: 60,
+                maxHeight: 320,
+                overflowY: 'auto',
+              }}
+            >
+              {summaries.map((s) => {
+                const active = s.slug === currentSlug
+                return (
+                  <button
+                    key={s.slug}
+                    onClick={() => handleSwitch(s.slug)}
+                    style={{
+                      width: '100%',
+                      background: active ? '#F5F2EE' : 'transparent',
+                      border: 'none',
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 7,
+                        background: `linear-gradient(135deg, ${s.primaryColor}, ${s.primaryColor}99)`,
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {s.logo && s.logo.length <= 2 ? s.logo : initialsFor(s.name)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 12.5,
+                          lineHeight: 1.2,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {s.name}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: '#7A6E66', marginTop: 1 }}>
+                        /{s.slug}
+                      </div>
+                    </div>
+                    {active ? <span style={{ color: '#22C55E', fontSize: 13 }}>✓</span> : null}
+                  </button>
+                )
+              })}
+
+              <div style={{ borderTop: '1px solid rgba(26, 20, 16, 0.06)', margin: '6px 0' }} />
+
+              {creating ? (
+                <div style={{ padding: '4px 6px', display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    value={newName}
+                    autoFocus
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleConfirmCreate()
+                      if (e.key === 'Escape') {
+                        setCreating(false)
+                        setNewName('')
+                      }
+                    }}
+                    placeholder="Nombre del nuevo local…"
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      border: '1px solid rgba(26, 20, 16, 0.12)',
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      outline: 'none',
+                      minWidth: 0,
+                    }}
+                  />
+                  <button
+                    onClick={handleConfirmCreate}
+                    style={{
+                      background: '#E54B2A',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0 10px',
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✓
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCreating(true)}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: '#E54B2A',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 14 }}>+</span>
+                  <span>Crear nuevo local</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  onDeleteCurrentLocale()
+                }}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  color: '#C03A1E',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 13 }}>🗑</span>
+                <span>Eliminar este local</span>
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Nav */}

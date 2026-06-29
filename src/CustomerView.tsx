@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { usePersistedState } from './store'
+import { useLocaleState } from './store'
+import type { LocaleState } from './store'
+import { navigate } from './router'
 import { formatPrice } from './utils'
 import type { Product } from './types'
 
@@ -26,8 +28,68 @@ interface FormErrors {
   address?: boolean
 }
 
-export function CustomerView() {
-  const store = usePersistedState()
+interface CustomerViewProps {
+  slug: string
+}
+
+export function CustomerView({ slug }: CustomerViewProps) {
+  const store = useLocaleState(slug)
+  if (!store) {
+    return <MissingLocaleScreen slug={slug} />
+  }
+  return <CustomerViewInner store={store} />
+}
+
+function MissingLocaleScreen({ slug }: { slug: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#FAF6F2',
+        color: '#1A1410',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 56, marginBottom: 10 }}>🏪</div>
+      <h1
+        style={{
+          fontFamily: "'Bricolage Grotesque', sans-serif",
+          fontWeight: 700,
+          fontSize: 24,
+          margin: '0 0 6px',
+        }}
+      >
+        No encontramos ese local
+      </h1>
+      <p style={{ color: '#7A6E66', maxWidth: 380, margin: '0 0 18px', lineHeight: 1.5 }}>
+        El link <code>/{slug}</code> no corresponde a ningún local cargado. Tal vez fue dado de
+        baja o el link está mal escrito.
+      </p>
+      <button
+        onClick={() => navigate({ kind: 'landing' })}
+        style={{
+          background: '#1A1410',
+          color: 'white',
+          border: 'none',
+          padding: '11px 18px',
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: 13.5,
+          cursor: 'pointer',
+        }}
+      >
+        Ver todos los locales
+      </button>
+    </div>
+  )
+}
+
+function CustomerViewInner({ store }: { store: LocaleState }) {
 
   const availableProducts = useMemo(
     () => store.products.filter((p) => p.available),
@@ -639,8 +701,28 @@ export function CustomerView() {
             <span>Ver carrito</span>
           </span>
           <span style={{ opacity: 0.7 }}>·</span>
-          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700 }}>
-            {formatPrice(subtotal)}
+          <span
+            style={{
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              lineHeight: 1.1,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9.5,
+                opacity: 0.75,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {effectiveDeliveryFee > 0 ? 'Total con envío' : 'Total'}
+            </span>
+            <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700 }}>
+              {formatPrice(total)}
+            </span>
           </span>
           <span style={{ opacity: 0.8, fontSize: 16, marginLeft: 2 }}>→</span>
         </button>
@@ -1273,21 +1355,31 @@ export function CustomerView() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'baseline',
-                marginBottom: 12,
+                marginBottom: 4,
               }}
             >
-              <span style={{ fontSize: 13, color: '#7A6E66', fontWeight: 500 }}>Total</span>
+              <span style={{ fontSize: 13, color: '#7A6E66', fontWeight: 600 }}>
+                {effectiveDeliveryFee > 0 ? 'Total con envío' : 'Total'}
+              </span>
               <span
                 style={{
                   fontFamily: "'Bricolage Grotesque', sans-serif",
                   fontWeight: 800,
-                  fontSize: 26,
-                  letterSpacing: '-0.02em',
+                  fontSize: 30,
+                  letterSpacing: '-0.025em',
+                  color: '#1A1410',
                 }}
               >
                 {formatPrice(total)}
               </span>
             </div>
+            {isCheckout && effectiveDeliveryFee > 0 ? (
+              <div style={{ fontSize: 11.5, color: '#7A6E66', marginBottom: 12, textAlign: 'right' }}>
+                Subtotal {formatPrice(subtotal)} + envío {formatPrice(effectiveDeliveryFee)}
+              </div>
+            ) : (
+              <div style={{ marginBottom: 12 }} />
+            )}
 
             {isCart ? (
               <button

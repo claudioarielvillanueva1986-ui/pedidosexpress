@@ -9,12 +9,14 @@ interface InicioSectionProps {
   payments: PaymentsConfig
   shipping: ShippingConfig
   local: LocalConfig
+  publicUrl: string
   isMobile?: boolean
   onToggleStatus: () => void
   onGoMenu: () => void
   onGoLocal: () => void
   onGoPagos: () => void
   onGoEnvio: () => void
+  onOpenCustomerView: () => void
 }
 
 interface ChecklistEntry {
@@ -32,13 +34,22 @@ export function InicioSection({
   payments,
   shipping,
   local,
+  publicUrl,
   isMobile = false,
   onToggleStatus,
   onGoMenu,
   onGoLocal,
   onGoPagos,
   onGoEnvio,
+  onOpenCustomerView,
 }: InicioSectionProps) {
+  const copyPublicUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl)
+    } catch {
+      window.prompt('Copialo manualmente:', publicUrl)
+    }
+  }
   const statusLabel = isOpen ? 'Local abierto' : 'Local cerrado'
   const statusDotColor = isOpen ? '#22C55E' : '#94918D'
   const statusBadgeBg = isOpen ? 'rgba(34, 197, 94, 0.12)' : 'rgba(26, 20, 16, 0.06)'
@@ -220,10 +231,11 @@ export function InicioSection({
                 textOverflow: 'ellipsis',
               }}
             >
-              pedido.express/laesquina
+              {publicUrl}
             </span>
           </div>
           <button
+            onClick={copyPublicUrl}
             style={{
               background: 'white',
               border: '1px solid rgba(26, 20, 16, 0.1)',
@@ -240,6 +252,7 @@ export function InicioSection({
             📋 Copiar
           </button>
           <button
+            onClick={onOpenCustomerView}
             style={{
               background: '#1A1410',
               color: 'white',
@@ -254,7 +267,7 @@ export function InicioSection({
               gap: 6,
             }}
           >
-            📱 QR
+            👁 Abrir
           </button>
         </div>
       </div>

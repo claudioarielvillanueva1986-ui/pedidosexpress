@@ -1,4 +1,4 @@
-export type SectionId = 'inicio' | 'pedidos' | 'menu' | 'local' | 'pagos' | 'envio'
+export type SectionId = 'inicio' | 'pedidos' | 'reportes' | 'menu' | 'local' | 'pagos' | 'envio'
 
 export interface Category {
   id: string

@@ -31,6 +31,7 @@ import { LocalSection } from './sections/LocalSection'
 import { PagosSection } from './sections/PagosSection'
 import { EnvioSection } from './sections/EnvioSection'
 import { PedidosSection } from './sections/PedidosSection'
+import { ReportesSection } from './sections/ReportesSection'
 import { useOrders } from './lib/ordersStore'
 import { useOrderNotifications } from './hooks/useOrderNotifications'
 import { loadNotificationPrefs } from './components/NotificationBanner'
@@ -708,6 +709,10 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
 
           {activeSection === 'pedidos' ? (
             <PedidosSection slug={slug} isMobile={isMobile} whatsapp={local.whatsapp} />
+          ) : null}
+
+          {activeSection === 'reportes' ? (
+            <ReportesSection slug={slug} isMobile={isMobile} />
           ) : null}
 
           {activeSection === 'menu' ? (

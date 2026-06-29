@@ -1,5 +1,6 @@
 import type {
   Category,
+  LocaleStatus,
   LocalConfig,
   PaymentsConfig,
   Product,
@@ -16,6 +17,7 @@ export interface LocaleState {
   payments: PaymentsConfig
   shipping: ShippingConfig
   localOpen: boolean
+  status: LocaleStatus
   createdAt: number
 }
 
@@ -26,5 +28,6 @@ export interface LocaleSummary {
   logo: string
   primaryColor: string
   localOpen: boolean
+  status: LocaleStatus
   productCount: number
 }

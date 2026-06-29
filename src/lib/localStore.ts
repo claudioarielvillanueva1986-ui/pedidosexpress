@@ -27,6 +27,7 @@ export function defaultLocaleState(slug: string, name?: string): LocaleState {
     payments: INITIAL_PAYMENTS,
     shipping: INITIAL_SHIPPING,
     localOpen: true,
+    status: 'active', // demo mode skips manual review
     createdAt: 1700000000000,
   }
 }
@@ -122,6 +123,7 @@ export function localListSummaries(): LocaleSummary[] {
     logo: l.local.logo,
     primaryColor: l.local.primaryColor,
     localOpen: l.localOpen,
+    status: l.status ?? 'active',
     productCount: l.products.filter((p) => p.available).length,
   }))
 }

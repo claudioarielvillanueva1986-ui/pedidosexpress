@@ -35,6 +35,7 @@ import { ReportesSection } from './sections/ReportesSection'
 import { useOrders } from './lib/ordersStore'
 import { useOrderNotifications } from './hooks/useOrderNotifications'
 import { loadNotificationPrefs } from './components/NotificationBanner'
+import { promoteToMerchant } from './lib/profile'
 import { buildUrl, navigate } from './router'
 
 const EMPTY_DRAFT_IMG =
@@ -102,6 +103,9 @@ function PanelAdminResolver({ slug, isMobile }: ResolverProps) {
         onCreate={async (name) => {
           setSeeding(true)
           try {
+            if (isCloudMode) {
+              await promoteToMerchant().catch(() => {})
+            }
             const created = await createLocale(name)
             navigate({ kind: 'admin', slug: created.slug })
           } catch (err) {
@@ -565,15 +569,19 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
   }
 
   const handleCreateLocale = (name: string) => {
-    void createLocale(name)
-      .then((created) => {
+    void (async () => {
+      try {
+        if (isCloudMode) {
+          await promoteToMerchant().catch(() => {})
+        }
+        const created = await createLocale(name)
         navigate({ kind: 'admin', slug: created.slug })
-      })
-      .catch((err) => {
+      } catch (err) {
         window.alert(
           err instanceof Error ? err.message : 'No pudimos crear el local. Reintentá.',
         )
-      })
+      }
+    })()
   }
 
   const handleDeleteThisLocale = () => {
@@ -682,6 +690,22 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
             width: '100%',
           }}
         >
+          {locale.status === 'pending_review' ? (
+            <StatusBanner
+              tone="warning"
+              icon="⏳"
+              title="Esperando aprobación"
+              message="Tu local todavía no es visible para los clientes. Cuando un administrador lo apruebe, automáticamente queda público."
+            />
+          ) : null}
+          {locale.status === 'suspended' ? (
+            <StatusBanner
+              tone="error"
+              icon="🚫"
+              title="Local suspendido"
+              message="Tu local fue suspendido y no recibe pedidos. Si pensás que es un error, contactá soporte."
+            />
+          ) : null}
           {activeSection === 'inicio' ? (
             <InicioSection
               isOpen={localOpen}
@@ -799,4 +823,39 @@ function newClientId(prefix: string): string {
     return crypto.randomUUID()
   }
   return `${prefix}_${Math.random().toString(36).slice(2)}${Date.now()}`
+}
+
+function StatusBanner({
+  tone,
+  icon,
+  title,
+  message,
+}: {
+  tone: 'warning' | 'error'
+  icon: string
+  title: string
+  message: string
+}) {
+  const bg = tone === 'warning' ? '#FFF7ED' : 'rgba(229, 75, 42, 0.06)'
+  const border = tone === 'warning' ? 'rgba(240, 130, 58, 0.3)' : 'rgba(229, 75, 42, 0.25)'
+  return (
+    <div
+      style={{
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 16,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+      }}
+    >
+      <span style={{ fontSize: 20, lineHeight: 1.2, flexShrink: 0 }}>{icon}</span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 2 }}>{title}</div>
+        <div style={{ fontSize: 12.5, color: '#7A6E66', lineHeight: 1.5 }}>{message}</div>
+      </div>
+    </div>
+  )
 }

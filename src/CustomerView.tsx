@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocaleState } from './store'
+import { useLocaleState, isCloudMode } from './store'
 import type { LocaleState } from './store'
 import { createOrder } from './lib/ordersStore'
+import { useAuth } from './lib/auth'
+import { useProfile, updateProfile, saveCustomerAddress } from './lib/profile'
 import { navigate } from './router'
 import { formatPrice } from './utils'
 import type { OrderDraft, OrderItem, Product } from './types'
 import { BrandLogo } from './components/BrandLogo'
+import { CustomerAuthModal } from './components/CustomerAuthModal'
 
 type ViewMode = 'cart' | 'checkout'
 type DeliveryMethod = 'delivery' | 'pickup'
@@ -43,7 +46,67 @@ export function CustomerView({ slug }: CustomerViewProps) {
   if (!storeQ.data) {
     return <MissingLocaleScreen slug={slug} />
   }
+  if (storeQ.data.status !== 'active') {
+    return <LocalUnavailableScreen status={storeQ.data.status} name={storeQ.data.local.name} />
+  }
   return <CustomerViewInner store={storeQ.data} />
+}
+
+function LocalUnavailableScreen({
+  status,
+  name,
+}: {
+  status: 'pending_review' | 'suspended' | string
+  name: string
+}) {
+  const pending = status === 'pending_review'
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#FAF6F2',
+        color: '#1A1410',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 56, marginBottom: 10 }}>{pending ? '⏳' : '🚫'}</div>
+      <h1
+        style={{
+          fontFamily: "'Bricolage Grotesque', sans-serif",
+          fontWeight: 700,
+          fontSize: 24,
+          margin: '0 0 6px',
+        }}
+      >
+        {pending ? `${name} todavía no está disponible` : `${name} no está disponible`}
+      </h1>
+      <p style={{ color: '#7A6E66', maxWidth: 400, margin: '0 0 18px', lineHeight: 1.5 }}>
+        {pending
+          ? 'Estamos revisando este local antes de habilitarlo al público. Volvé a intentar en un rato.'
+          : 'Este local fue dado de baja. Si pensás que es un error, contactanos.'}
+      </p>
+      <button
+        onClick={() => navigate({ kind: 'landing' })}
+        style={{
+          background: '#1A1410',
+          color: 'white',
+          border: 'none',
+          padding: '11px 18px',
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: 13.5,
+          cursor: 'pointer',
+        }}
+      >
+        Ver otros locales
+      </button>
+    </div>
+  )
 }
 
 function CustomerLoadingScreen() {
@@ -162,6 +225,10 @@ function MissingLocaleScreen({ slug }: { slug: string }) {
 }
 
 function CustomerViewInner({ store }: { store: LocaleState }) {
+  const auth = useAuth()
+  const profileQ = useProfile()
+  const requiresAuth = isCloudMode
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   const availableProducts = useMemo(
     () => store.products.filter((p) => p.available),
@@ -193,6 +260,16 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
     deliveryMethod: store.shipping.deliveryEnabled ? 'delivery' : 'pickup',
     paymentMethod: store.payments.cashEnabled ? 'cash' : 'mp',
   })
+
+  // Pre-fill form with profile data when the user is logged in
+  useEffect(() => {
+    if (!profileQ.profile) return
+    setForm((f) => ({
+      ...f,
+      name: f.name || profileQ.profile?.fullName || '',
+      phone: f.phone || profileQ.profile?.phone || '',
+    }))
+  }, [profileQ.profile?.id])
   const [errors, setErrors] = useState<FormErrors>({})
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -309,8 +386,20 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
 
   const [submitting, setSubmitting] = useState(false)
 
+  const goCheckout = () => {
+    if (requiresAuth && !auth.user) {
+      setAuthModalOpen(true)
+      return
+    }
+    setView('checkout')
+  }
+
   const submitOrder = async () => {
     if (submitting) return
+    if (requiresAuth && !auth.user) {
+      setAuthModalOpen(true)
+      return
+    }
     const errs = validate()
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
@@ -342,12 +431,27 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
 
     setSubmitting(true)
     try {
-      await createOrder(draft)
+      await createOrder({ ...draft, customerId: auth.user?.id ?? null })
+
+      // Save profile data + default address for next time
+      if (requiresAuth && auth.user && isCloudMode) {
+        try {
+          await updateProfile({ fullName: draft.customerName, phone: draft.customerPhone })
+          if (draft.deliveryMethod === 'delivery' && draft.customerAddress) {
+            await saveCustomerAddress({
+              label: 'Casa',
+              address: draft.customerAddress,
+              notes: '',
+              isDefault: true,
+            })
+          }
+        } catch (err) {
+          console.warn('No pudimos guardar el perfil', err)
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'No pudimos registrar el pedido'
       showToast(msg)
-      // Tampoco bloqueamos el envío por WhatsApp si la persistencia falla,
-      // mejor que el cliente pueda mandar el pedido aunque no quede en la DB.
       console.error('createOrder failed', err)
     } finally {
       setSubmitting(false)
@@ -1518,7 +1622,7 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
 
             {isCart ? (
               <button
-                onClick={() => setView('checkout')}
+                onClick={goCheckout}
                 disabled={!store.localOpen}
                 style={{
                   width: '100%',
@@ -1587,6 +1691,17 @@ function CustomerViewInner({ store }: { store: LocaleState }) {
           </div>
         ) : null}
       </aside>
+
+      <CustomerAuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onAuthenticated={() => {
+          setAuthModalOpen(false)
+          setView('checkout')
+        }}
+        primaryColor={store.local.primaryColor || '#E54B2A'}
+        localName={store.local.name}
+      />
 
       {/* TOAST */}
       {toast ? (

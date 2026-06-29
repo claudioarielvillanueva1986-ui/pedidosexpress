@@ -15,9 +15,15 @@ export function MarketplaceLanding() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
+  // Public view shows only approved (active) locales.
+  const publicLocales = useMemo(
+    () => summariesQ.data.filter((s) => s.status === 'active'),
+    [summariesQ.data],
+  )
+
   const summaries = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return summariesQ.data
+    return publicLocales
       .filter((s) => {
         if (statusFilter === 'open' && !s.localOpen) return false
         if (statusFilter === 'closed' && s.localOpen) return false
@@ -31,11 +37,11 @@ export function MarketplaceLanding() {
           (s.slogan ?? '').toLowerCase().includes(q)
         )
       })
-  }, [summariesQ.data, search, statusFilter])
+  }, [publicLocales, search, statusFilter])
 
-  const openCount = summariesQ.data.filter((s) => s.localOpen).length
-  const closedCount = summariesQ.data.length - openCount
-  const hasAnyLocales = summariesQ.data.length > 0
+  const openCount = publicLocales.filter((s) => s.localOpen).length
+  const closedCount = publicLocales.length - openCount
+  const hasAnyLocales = publicLocales.length > 0
 
   const handleCreate = async () => {
     const name = newName.trim()

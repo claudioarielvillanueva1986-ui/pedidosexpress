@@ -3,6 +3,8 @@ import { isCloudMode, supabase } from './supabase'
 import type { Order, OrderDraft, OrderStatus } from '../types'
 import { CHANGED_EVENT } from './localStore'
 
+type OrderDraftWithCustomer = OrderDraft & { customerId?: string | null }
+
 const ORDERS_KEY = 'pedidoExpress.orders.v1'
 const ORDERS_EVENT = 'pedidoExpress.ordersChanged'
 
@@ -42,7 +44,7 @@ function newId(): string {
 }
 
 // --------- local mode ----------
-function localCreateOrder(draft: OrderDraft): Order {
+function localCreateOrder(draft: OrderDraftWithCustomer): Order {
   const now = Date.now()
   const order: Order = {
     ...draft,
@@ -50,6 +52,7 @@ function localCreateOrder(draft: OrderDraft): Order {
     status: 'pending',
     createdAt: now,
     updatedAt: now,
+    customerId: draft.customerId ?? null,
   }
   const store = readLocalOrders()
   store.byLocale[draft.localeSlug] = [order, ...(store.byLocale[draft.localeSlug] ?? [])]
@@ -95,6 +98,7 @@ function localSubscribeOrders(cb: () => void): () => void {
 interface DbOrder {
   id: string
   locale_slug: string
+  customer_id: string | null
   customer_name: string
   customer_phone: string
   customer_address: string | null
@@ -114,6 +118,7 @@ function rowToOrder(r: DbOrder): Order {
   return {
     id: r.id,
     localeSlug: r.locale_slug,
+    customerId: r.customer_id,
     customerName: r.customer_name,
     customerPhone: r.customer_phone,
     customerAddress: r.customer_address ?? '',
@@ -130,12 +135,13 @@ function rowToOrder(r: DbOrder): Order {
   }
 }
 
-async function cloudCreateOrder(draft: OrderDraft): Promise<Order> {
+async function cloudCreateOrder(draft: OrderDraftWithCustomer): Promise<Order> {
   if (!supabase) throw new Error('Cloud no configurado')
   const { data, error } = await supabase
     .from('orders')
     .insert({
       locale_slug: draft.localeSlug,
+      customer_id: draft.customerId ?? null,
       customer_name: draft.customerName,
       customer_phone: draft.customerPhone,
       customer_address: draft.customerAddress,
@@ -200,7 +206,7 @@ function cloudSubscribeOrders(slug: string, cb: () => void): () => void {
 }
 
 // --------- public API (dispatcher) ----------
-export async function createOrder(draft: OrderDraft): Promise<Order> {
+export async function createOrder(draft: OrderDraftWithCustomer): Promise<Order> {
   if (!isCloudMode) return localCreateOrder(draft)
   return cloudCreateOrder(draft)
 }

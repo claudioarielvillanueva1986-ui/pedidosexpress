@@ -102,4 +102,26 @@ export interface Order extends OrderDraft {
   status: OrderStatus
   createdAt: number
   updatedAt: number
+  customerId?: string | null
 }
+
+export type UserRole = 'customer' | 'merchant' | 'admin'
+
+export interface UserProfile {
+  id: string
+  role: UserRole
+  fullName: string
+  phone: string
+  createdAt: number
+}
+
+export interface CustomerAddress {
+  id: string
+  ownerId: string
+  label: string
+  address: string
+  notes: string
+  isDefault: boolean
+}
+
+export type LocaleStatus = 'pending_review' | 'active' | 'suspended'

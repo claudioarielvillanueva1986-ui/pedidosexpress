@@ -6,7 +6,7 @@ import {
   INITIAL_SCHEDULE,
   INITIAL_SHIPPING,
 } from '../data'
-import type { Category, Product, ScheduleDay } from '../types'
+import type { Category, LocaleStatus, Product, ScheduleDay } from '../types'
 import { requireClient } from './supabase'
 import { slugify } from './localStore'
 import type { LocaleState, LocaleSummary } from './storeTypes'
@@ -38,6 +38,7 @@ interface DbLocaleRow {
   payment_message: string | null
   payment_link: string | null
   schedule: ScheduleDay[] | null
+  status: LocaleStatus | null
   created_at: string
   updated_at: string
 }
@@ -101,6 +102,7 @@ function rowToLocaleState(
       email: row.email ?? '',
       address: row.address ?? '',
     },
+    status: row.status ?? 'pending_review',
     schedule:
       Array.isArray(row.schedule) && row.schedule.length > 0
         ? row.schedule
@@ -132,7 +134,7 @@ export async function cloudListSummaries(): Promise<LocaleSummary[]> {
   const { data: locales, error } = await sb
     .from('locales')
     .select(
-      'slug,name,slogan,logo,primary_color,local_open',
+      'slug,name,slogan,logo,primary_color,local_open,status',
     )
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -158,6 +160,7 @@ export async function cloudListSummaries(): Promise<LocaleSummary[]> {
     logo: l.logo ?? '🔥',
     primaryColor: l.primary_color ?? '#E54B2A',
     localOpen: l.local_open,
+    status: (l.status ?? 'pending_review') as LocaleStatus,
     productCount: counts[l.slug] ?? 0,
   }))
 }

@@ -183,8 +183,11 @@ async function cloudDeleteOrder(id: string): Promise<void> {
 
 function cloudSubscribeOrders(slug: string, cb: () => void): () => void {
   if (!supabase) return () => {}
-  const channel = supabase
-    .channel(`orders-${slug}`)
+  const sb = supabase
+  // Unique channel per subscriber — same reason as cloudSubscribe.
+  const suffix = Math.random().toString(36).slice(2, 10)
+  const channel = sb
+    .channel(`orders-${slug}-${suffix}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'orders', filter: `locale_slug=eq.${slug}` },
@@ -192,7 +195,7 @@ function cloudSubscribeOrders(slug: string, cb: () => void): () => void {
     )
     .subscribe()
   return () => {
-    channel.unsubscribe()
+    sb.removeChannel(channel)
   }
 }
 

@@ -362,8 +362,13 @@ export async function cloudDeleteLocale(slug: string): Promise<void> {
 export function cloudSubscribe(cb: () => void, opts?: { slug?: string }): () => void {
   const sb = requireClient()
   const slug = opts?.slug
+  // Each subscriber gets its own channel — Supabase reuses channels by name and
+  // disallows .on() after .subscribe(), so two components subscribing to the same
+  // logical scope would crash without a unique suffix.
+  const suffix = Math.random().toString(36).slice(2, 10)
+  const baseName = slug ? `locale-${slug}` : 'locales-all'
   const channel = sb
-    .channel(slug ? `locale-${slug}` : 'locales-all')
+    .channel(`${baseName}-${suffix}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'locales', filter: slug ? `slug=eq.${slug}` : undefined },
@@ -381,6 +386,6 @@ export function cloudSubscribe(cb: () => void, opts?: { slug?: string }): () => 
     )
     .subscribe()
   return () => {
-    channel.unsubscribe()
+    sb.removeChannel(channel)
   }
 }

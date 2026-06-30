@@ -5,6 +5,31 @@ Esta guía te lleva paso a paso desde "app en localStorage" hasta
 multi-dispositivo". Una sola vez. Después la app se queda en modo
 cloud para siempre.
 
+## Cómo saber qué migraciones ya corriste
+
+A partir de la migración 007, el proyecto registra cada migración
+aplicada en una tabla `public.schema_migrations`. Para ver qué
+está aplicado en este Supabase, ejecutá en SQL Editor:
+
+```sql
+select version, name, applied_at
+from public.schema_migrations
+order by version;
+```
+
+Lo que esté en la lista, **no lo corras de nuevo**. Lo que falte
+respecto a `supabase/migrations/` en el repo, corrélo en orden
+numérico ascendente.
+
+> ⚠️ Si la tabla `schema_migrations` todavía no existe en tu
+> Supabase (proyecto creado antes de la 007), correr la 007
+> primero — su backfill se da cuenta solo qué migraciones ya
+> aplicaste y registra todo.
+
+**Las migraciones son acumulativas y deben correrse en orden.**
+Saltearte una rompe las que dependen de ella (ej. la 006 necesita
+la 005).
+
 ---
 
 ## Lo que vas a hacer

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { PanelAdmin } from './PanelAdmin'
 import { CustomerView } from './CustomerView'
 import { MarketplaceLanding } from './MarketplaceLanding'
+import { SuperAdminPanel } from './SuperAdminPanel'
 import { parseHash, type Route } from './router'
 import './styles.css'
 
@@ -20,6 +21,8 @@ function App() {
       return <PanelAdmin slug={route.slug} />
     case 'customer':
       return <CustomerView slug={route.slug} />
+    case 'superadmin':
+      return <SuperAdminPanel />
     case 'landing':
       return <MarketplaceLanding />
   }

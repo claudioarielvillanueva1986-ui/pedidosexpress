@@ -2,12 +2,17 @@ export type Route =
   | { kind: 'landing' }
   | { kind: 'admin'; slug: string | null }
   | { kind: 'customer'; slug: string }
+  | { kind: 'superadmin' }
 
 export function parseHash(hash: string): Route {
   const cleaned = hash.replace(/^#\/?/, '').replace(/\/+$/, '')
   if (!cleaned) return { kind: 'landing' }
 
   const parts = cleaned.split('/').filter(Boolean)
+
+  if (parts[0] === 'superadmin') {
+    return { kind: 'superadmin' }
+  }
 
   if (parts[0] === 'admin') {
     const slug = parts[1] ?? null
@@ -33,6 +38,8 @@ export function buildHash(route: Route): string {
       return route.slug ? `#/admin/${route.slug}` : '#/admin'
     case 'customer':
       return `#/${route.slug}`
+    case 'superadmin':
+      return '#/superadmin'
   }
 }
 

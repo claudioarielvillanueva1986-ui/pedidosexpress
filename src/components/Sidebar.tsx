@@ -21,7 +21,9 @@ interface SidebarProps {
   onGoLanding: () => void
   cloudEnabled?: boolean
   userEmail?: string | null
+  isAdmin?: boolean
   onSignOut?: () => void
+  onGoSuperAdmin?: () => void
 }
 
 function navItemStyle(active: boolean): React.CSSProperties {
@@ -68,7 +70,9 @@ export function Sidebar({
   onGoLanding,
   cloudEnabled = false,
   userEmail = null,
+  isAdmin = false,
   onSignOut,
+  onGoSuperAdmin,
   navBadges = {},
 }: SidebarProps) {
   const summariesQ = useLocaleSummaries()
@@ -504,6 +508,29 @@ export function Sidebar({
             )
           })}
         </nav>
+
+        {isAdmin && onGoSuperAdmin ? (
+          <button
+            onClick={onGoSuperAdmin}
+            style={{
+              margin: '10px 12px 0',
+              padding: '10px 14px',
+              background: 'rgba(229, 75, 42, 0.08)',
+              color: '#C03A1E',
+              border: '1px solid rgba(229, 75, 42, 0.2)',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 12.5,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span>🛡</span>
+            <span>Super admin</span>
+          </button>
+        ) : null}
 
         {/* Plan card */}
         <div

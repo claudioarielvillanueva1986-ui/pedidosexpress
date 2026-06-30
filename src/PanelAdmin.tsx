@@ -35,7 +35,7 @@ import { ReportesSection } from './sections/ReportesSection'
 import { useOrders } from './lib/ordersStore'
 import { useOrderNotifications } from './hooks/useOrderNotifications'
 import { loadNotificationPrefs } from './components/NotificationBanner'
-import { promoteToMerchant } from './lib/profile'
+import { promoteToMerchant, useProfile } from './lib/profile'
 import { buildUrl, navigate } from './router'
 
 const EMPTY_DRAFT_IMG =
@@ -322,6 +322,8 @@ interface PanelAdminInnerProps {
 
 function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
   const auth = useAuth()
+  const profileQ = useProfile()
+  const isAdmin = profileQ.profile?.role === 'admin'
   const [activeSection, setActiveSection] = useState<SectionId>('inicio')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -667,7 +669,9 @@ function PanelAdminInner({ initialLocale, isMobile }: PanelAdminInnerProps) {
         onGoLanding={() => navigate({ kind: 'landing' })}
         cloudEnabled={auth.cloudEnabled}
         userEmail={auth.user?.email ?? null}
+        isAdmin={isAdmin}
         onSignOut={() => void auth.signOut()}
+        onGoSuperAdmin={() => navigate({ kind: 'superadmin' })}
       />
 
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>

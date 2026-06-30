@@ -84,6 +84,20 @@ begin
     values ('006', 'admin_policies')
     on conflict (version) do nothing;
   end if;
+
+  -- 008_fix_admin_recursion.sql: helper is_admin() + policies sin recursión.
+  -- (Si la 008 corrió antes que la 007 — caso del fix urgente —, su self-
+  -- registro fue no-op porque schema_migrations no existía aún. La
+  -- detectamos acá por la presencia de la función public.is_admin().)
+  if exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'is_admin'
+  ) then
+    insert into public.schema_migrations (version, name)
+    values ('008', 'fix_admin_recursion')
+    on conflict (version) do nothing;
+  end if;
 end$$;
 
 -- Registrar esta migración.
